@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require_relative "s3_asset_deploy/version"
+require "s3_asset_deploy/version"
+require "s3_asset_deploy/manager"
 
 module S3AssetDeploy
 end

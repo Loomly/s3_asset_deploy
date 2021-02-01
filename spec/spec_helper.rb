@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require "s3_asset_deploy"
+require "ostruct"
+require "time"
+require "timecop"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
