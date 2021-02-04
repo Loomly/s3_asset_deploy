@@ -3,17 +3,19 @@
 require "logger"
 require "ostruct"
 require "aws-sdk-s3"
+require "s3_asset_deploy/rails_local_asset_collector"
 
 class S3AssetDeploy::Manager
   FINGERPRINTED_ASSET_REGEX = /\A(.*)-([[:alnum:]]+)((?:(?:\.[[:alnum:]]+))+)\z/.freeze
 
   class DuplicateAssetsError < StandardError; end
 
-  attr_reader :bucket_name, :logger
+  attr_reader :bucket_name, :logger, :local_asset_collector
 
-  def initialize(bucket_name, s3_client_options: {}, logger: nil)
+  def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil)
     @bucket_name = bucket_name
     @logger = logger || Logger.new(STDOUT)
+    @local_asset_collector = local_asset_collector || S3AssetDeploy::RailsLocalAssetCollector.new
     @s3_client_options = {
       region: "us-east-1",
       logger: @logger
@@ -41,7 +43,7 @@ class S3AssetDeploy::Manager
   end
 
   def local_asset_paths
-    assets_from_manifest + pack_assets
+    local_asset_collector.local_asset_paths
   end
 
   def local_asset_map
@@ -59,21 +61,6 @@ class S3AssetDeploy::Manager
   def verify_no_duplicate_assets!
     if local_logical_asset_paths.uniq.length != local_asset_paths.length
       raise DuplicateAssetsError, "Duplicate precompiled assets detected. Please make sure there are no duplicate precompiled assets in the public dir."
-    end
-  end
-
-  def assets_from_manifest
-    manifest = Sprockets::Manifest.new(ActionView::Base.assets_manifest.environment, ActionView::Base.assets_manifest.dir)
-    manifest.assets.values.map { |f| File.join(assets_prefix, f) }
-  end
-
-  def pack_assets
-    Dir.chdir(public_path) do
-      packs_dir = Webpacker.config.public_output_path.relative_path_from(public_path)
-
-      Dir[File.join(packs_dir, "/**/**")]
-        .select { |file| File.file?(file) }
-        .reject { |file| file.ends_with?(".gz") || file.ends_with?("manifest.json") }
     end
   end
 
@@ -183,16 +170,6 @@ class S3AssetDeploy::Manager
     extension = File.extname(asset)[1..-1]
     return "application/json" if extension == "map"
     MIME::Types.type_for(extension).first
-  end
-
-  private
-
-  def assets_prefix
-    ::Rails.application.config.assets.prefix.sub(/^\//, "")
-  end
-
-  def public_path
-    Rails.public_path
   end
 
   def log(msg)
