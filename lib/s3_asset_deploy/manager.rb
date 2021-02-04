@@ -20,7 +20,7 @@ class S3AssetDeploy::Manager
   end
 
   def remote_assets
-    s3.list_objects(bucket: bucket_name).each_with_object([]) do |response, array|
+    s3.list_objects_v2(bucket: bucket_name).each_with_object([]) do |response, array|
       array.concat(response.contents)
     end
   end
