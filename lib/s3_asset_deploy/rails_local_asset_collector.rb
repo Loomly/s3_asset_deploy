@@ -6,15 +6,15 @@ class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollect
   end
 
   def assets_from_manifest
-    manifest = Sprockets::Manifest.new(ActionView::Base.assets_manifest.environment, ActionView::Base.assets_manifest.dir)
+    manifest = ::Sprockets::Manifest.new(::ActionView::Base.assets_manifest.environment, ::ActionView::Base.assets_manifest.dir)
     manifest.assets.values.map { |f| File.join(assets_prefix, f) }
   end
 
   def pack_assets
-    return [] unless defined?(Webpacker)
+    return [] unless defined?(::Webpacker)
 
     Dir.chdir(public_path) do
-      packs_dir = Webpacker.config.public_output_path.relative_path_from(public_path)
+      packs_dir = ::Webpacker.config.public_output_path.relative_path_from(public_path)
 
       Dir[File.join(packs_dir, "/**/**")]
         .select { |file| File.file?(file) }
