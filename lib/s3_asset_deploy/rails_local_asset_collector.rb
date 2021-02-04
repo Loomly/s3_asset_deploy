@@ -22,6 +22,10 @@ class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollect
     end
   end
 
+  def full_file_path(asset_path)
+    "#{public_path}/#{asset_path}"
+  end
+
   private
 
   def assets_prefix

@@ -70,7 +70,7 @@ class S3AssetDeploy::Manager
 
   # TODO: consider reduced redundancy
   def upload_asset(asset_path)
-    file_handle = File.open("#{public_path}/#{asset_path}")
+    file_handle = File.open(local_asset_collector.full_file_path(asset_path))
 
     asset = {
       bucket: bucket_name,
@@ -93,7 +93,7 @@ class S3AssetDeploy::Manager
     verify_no_duplicate_assets!
 
     local_assets_to_upload.each do |asset_path|
-      next unless File.file? "#{public_path}/#{asset_path}"
+      next unless File.file?(local_asset_collector.full_file_path(asset_path))
       log "Uploading #{asset_path}..."
       upload_asset(asset_path) unless dry_run
     end
