@@ -2,6 +2,7 @@
 
 require "logger"
 require "ostruct"
+require "aws-sdk-s3"
 
 class S3AssetDeploy::Manager
   FINGERPRINTED_ASSET_REGEX = /\A(.*)-([[:alnum:]]+)((?:(?:\.[[:alnum:]]+))+)\z/.freeze
