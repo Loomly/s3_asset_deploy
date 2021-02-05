@@ -145,12 +145,19 @@ class S3AssetDeploy::Manager
 
           if removed_at
             removed_at = Time.parse(removed_at)
-            (Time.now.utc - removed_at) < removed_age
+            asset_removed_age = Time.now.utc - removed_at
+            log "Determining how long ago #{version.asset.key} was removed - removed on #{removed_at} (#{asset_removed_age} seconds ago)"
+            asset_removed_age < removed_age
           else
-            s3.put_object_tagging(
-              version.asset.key,
-              tag_set.concat(key: :removed_at, value: Time.now.utc.iso8601)
-            )
+            log "Adding removed_at tag to #{version.asset.key}"
+
+            if !dry_run
+              s3.put_object_tagging(
+                version.asset.key,
+                tag_set.concat(key: :removed_at, value: Time.now.utc.iso8601)
+              )
+            end
+
             true
           end
         else
