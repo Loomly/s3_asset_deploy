@@ -2,6 +2,7 @@
 
 require "logger"
 require "ostruct"
+require "time"
 require "aws-sdk-s3"
 require "s3_asset_deploy/rails_local_asset_collector"
 
@@ -68,6 +69,14 @@ class S3AssetDeploy::Manager
     s3.put_object(object)
   end
 
+  def get_object_tagging(object)
+    s3.get_object_tagging(bucket: bucket_name, key: object.key)
+  end
+
+  def put_object_tagging(object, tag_set)
+    s3.put_object_tagging(bucket: bucket_name, key: object.key, tagging: { tag_set: tag_set })
+  end
+
   # TODO: consider reduced redundancy
   def upload_asset(asset_path)
     file_handle = File.open(local_asset_collector.full_file_path(asset_path))
@@ -101,8 +110,11 @@ class S3AssetDeploy::Manager
 
   # Cleanup old assets on S3. By default it will
   # keep the latest version, 2 backups and any created within the past hour.
-  def clean_assets(count: 2, age: 3600, dry_run: false)
+  def clean_assets(count: 2, age: 3600, removed_age: 172800, dry_run: false)
     verify_no_duplicate_assets!
+
+    age = age.to_i
+    removed_age = removed_age.to_i
 
     log "Cleaning assets from #{bucket_name} S3 bucket"
     assets_to_delete = []
@@ -124,10 +136,23 @@ class S3AssetDeploy::Manager
         version_age = [0, Time.now - version.asset.last_modified].max
 
         # If the asset has been completely removed from our set of assets
-        # then use only age to determine if it should be deleted from remote host.
+        # then use removed_at tag and removed_age to determine if it should be deleted from remote host.
         # Otherwise, use age and count to dermine whether version should be kept.
-        unless current_fingerprinted_path
-          version_age < age
+        if !current_fingerprinted_path
+          obj_tagging = s3.get_object_tagging(version.asset.key)
+          tag_set = obj_tagging.tag_set
+          removed_at = tag_set.find { |t| t[:key] == "removed_at" }
+
+          if removed_at
+            removed_at = Time.parse(removed_at)
+            (Time.now.utc - removed_at) < removed_age
+          else
+            s3.put_object_tagging(
+              version.asset.key,
+              tag_set.concat(key: :removed_at, value: Time.now.utc.iso8601)
+            )
+            true
+          end
         else
           # Keep if under age or within the count limit
           version_age < age || index < count
