@@ -154,7 +154,7 @@ class S3AssetDeploy::Manager
             if !dry_run
               s3.put_object_tagging(
                 version.asset.key,
-                tag_set.concat(key: :removed_at, value: Time.now.utc.iso8601)
+                tag_set.push(key: :removed_at, value: Time.now.utc.iso8601)
               )
             end
 
