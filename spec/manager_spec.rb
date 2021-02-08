@@ -9,6 +9,13 @@ RSpec.describe S3AssetDeploy::Manager do
 
       def delete_objects(*args)
       end
+
+      def get_object_tagging(*args)
+        OpenStruct.new(tag_set: [])
+      end
+
+      def put_object_tagging(*args)
+      end
     end
   end
 
