@@ -69,12 +69,12 @@ class S3AssetDeploy::Manager
     s3.put_object(object)
   end
 
-  def get_object_tagging(object)
-    s3.get_object_tagging(bucket: bucket_name, key: object.key)
+  def get_object_tagging(key)
+    s3.get_object_tagging(bucket: bucket_name, key: key)
   end
 
-  def put_object_tagging(object, tag_set)
-    s3.put_object_tagging(bucket: bucket_name, key: object.key, tagging: { tag_set: tag_set })
+  def put_object_tagging(key, tag_set)
+    s3.put_object_tagging(bucket: bucket_name, key: key, tagging: { tag_set: tag_set })
   end
 
   # TODO: consider reduced redundancy

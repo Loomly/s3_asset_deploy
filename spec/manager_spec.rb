@@ -19,7 +19,9 @@ RSpec.describe S3AssetDeploy::Manager do
     end
   end
 
-  before { allow_any_instance_of(described_class).to receive(:s3) { s3_client.new } }
+  let(:s3_client_instance) { s3_client.new }
+
+  before { allow_any_instance_of(described_class).to receive(:s3) { s3_client_instance } }
   before { allow_any_instance_of(described_class).to receive(:log) {} }
 
   describe "#local_assets_to_upload" do
@@ -38,17 +40,29 @@ RSpec.describe S3AssetDeploy::Manager do
   end
 
   describe "#clean_assets" do
-    it "should delete removed files" do
-      expect(subject).to receive(:remote_assets).at_least(:once).and_return([
-        OpenStruct.new(key: "assets/file-1-12345.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
-        OpenStruct.new(key: "assets/file-2-34567.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
-        OpenStruct.new(key: "assets/file-3-9876666.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC"))
-      ])
-      expect(subject).to receive(:local_asset_paths).at_least(:once).and_return([
-        "assets/file-1-12345.jpg"
-      ])
+    it "should tag untagged removed files" do
+      Timecop.freeze(Time.now) do
+        remote_assets = [
+          OpenStruct.new(key: "assets/file-1-12345.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
+          OpenStruct.new(key: "assets/file-2-34567.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
+          OpenStruct.new(key: "assets/file-3-9876666.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC"))
+        ]
+        expect(subject).to receive(:remote_assets).at_least(:once).and_return(remote_assets)
+        expect(subject).to receive(:local_asset_paths).at_least(:once).and_return([
+          "assets/file-1-12345.jpg"
+        ])
 
-      expect(subject.clean_assets).to contain_exactly("assets/file-2-34567.jpg", "assets/file-3-9876666.jpg")
+        expect(s3_client_instance).to receive(:put_object_tagging).once.with(
+          "assets/file-2-34567.jpg",
+          array_including(key: :removed_at, value: Time.now.utc.iso8601)
+        )
+        expect(s3_client_instance).to receive(:put_object_tagging).once.with(
+          "assets/file-3-9876666.jpg",
+          array_including(key: :removed_at, value: Time.now.utc.iso8601)
+        )
+
+        expect(subject.clean_assets).to match_array([])
+      end
     end
 
     it "should keep old versions up to 'count'" do
