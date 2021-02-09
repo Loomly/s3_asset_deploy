@@ -135,8 +135,6 @@ class S3AssetDeploy::Manager
       end.sort_by do |version|
         version.asset.last_modified
       end.reverse.each_with_index.drop_while do |version, index|
-        version_age = [0, Time.now - version.asset.last_modified].max
-
         # If the asset has been completely removed from our set of assets
         # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
         # Otherwise, use version_ttl and count to dermine whether version should be kept.
@@ -164,6 +162,7 @@ class S3AssetDeploy::Manager
           end
         else
           # Keep if under age or within the count limit
+          version_age = [0, Time.now - version.asset.last_modified].max
           version_age < version_ttl || index < count
         end
       end.each do |version, index|
