@@ -109,12 +109,14 @@ class S3AssetDeploy::Manager
   end
 
   # Cleanup old assets on S3. By default it will
-  # keep the latest version, 2 backups and any created within the past hour.
-  def clean_assets(count: 2, age: 3600, removed_age: 172800, dry_run: false)
+  # keep the latest version, 2 backups and any created within the past hour (version_ttl).
+  # When assets are removed completely, they are tagged with a removed_at timestamp
+  # and eventually deleted based on the removed_ttl.
+  def clean_assets(count: 2, version_ttl: 3600, removed_ttl: 172800, dry_run: false)
     verify_no_duplicate_assets!
 
-    age = age.to_i
-    removed_age = removed_age.to_i
+    version_ttl = version_ttl.to_i
+    removed_ttl = removed_ttl.to_i
 
     log "Cleaning assets from #{bucket_name} S3 bucket"
     assets_to_delete = []
@@ -136,8 +138,8 @@ class S3AssetDeploy::Manager
         version_age = [0, Time.now - version.asset.last_modified].max
 
         # If the asset has been completely removed from our set of assets
-        # then use removed_at tag and removed_age to determine if it should be deleted from remote host.
-        # Otherwise, use age and count to dermine whether version should be kept.
+        # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
+        # Otherwise, use version_ttl and count to dermine whether version should be kept.
         if !current_fingerprinted_path
           obj_tagging = s3.get_object_tagging(version.asset.key)
           tag_set = obj_tagging.tag_set
@@ -145,9 +147,9 @@ class S3AssetDeploy::Manager
 
           if removed_at_tag
             removed_at = Time.parse(removed_at_tag[:value])
-            asset_removed_age = Time.now.utc - removed_at
-            log "Determining how long ago #{version.asset.key} was removed - removed on #{removed_at} (#{asset_removed_age} seconds ago)"
-            asset_removed_age < removed_age
+            removed_age = Time.now.utc - removed_at
+            log "Determining how long ago #{version.asset.key} was removed - removed on #{removed_at} (#{removed_age} seconds ago)"
+            removed_age < removed_ttl
           else
             log "Adding removed_at tag to #{version.asset.key}"
 
@@ -162,7 +164,7 @@ class S3AssetDeploy::Manager
           end
         else
           # Keep if under age or within the count limit
-          version_age < age || index < count
+          version_age < version_ttl || index < count
         end
       end.each do |version, index|
         assets_to_delete << version.asset.key

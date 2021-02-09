@@ -65,7 +65,7 @@ RSpec.describe S3AssetDeploy::Manager do
       end
     end
 
-    it "should delete remote assets only after 'removed_age'" do
+    it "should delete remote assets only after 'removed_ttl'" do
       Timecop.freeze(Time.now) do
         remote_assets = [
           OpenStruct.new(key: "assets/file-1-12345.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
@@ -84,7 +84,7 @@ RSpec.describe S3AssetDeploy::Manager do
           .with("assets/file-3-9876666.jpg")
           .and_return(OpenStruct.new(tag_set: [{ key: "removed_at", value: (Time.now - 172799).utc.iso8601 }]))
 
-        expect(subject.clean_assets(removed_age: 172800)).to contain_exactly("assets/file-2-34567.jpg")
+        expect(subject.clean_assets(removed_ttl: 172800)).to contain_exactly("assets/file-2-34567.jpg")
       end
     end
 
@@ -109,7 +109,7 @@ RSpec.describe S3AssetDeploy::Manager do
       expect(subject.clean_assets(count: 2)).to contain_exactly("assets/file-1-123.jpg")
     end
 
-    it "should wait atleast 'age' seconds before deleting old versions" do
+    it "should wait atleast 'version_ttl' seconds before deleting old versions" do
       Timecop.freeze(Time.now) do
         expect(subject).to receive(:remote_assets).at_least(:once).and_return([
           OpenStruct.new(key: "assets/file-1-123.jpg", last_modified: (Time.now - 4)),
