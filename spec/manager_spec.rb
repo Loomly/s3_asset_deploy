@@ -88,7 +88,7 @@ RSpec.describe S3AssetDeploy::Manager do
       end
     end
 
-    it "should keep old versions up to 'count'" do
+    it "should keep old versions up to 'version_limit'" do
       expect(subject).to receive(:remote_assets).at_least(:once).and_return([
         OpenStruct.new(key: "assets/file-1-123.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
         OpenStruct.new(key: "assets/file-1-456.jpg", last_modified: Time.parse("2018-05-02 15:38:31 UTC")),
@@ -106,7 +106,7 @@ RSpec.describe S3AssetDeploy::Manager do
         "assets/file-3-9876666.jpg"
       ])
 
-      expect(subject.clean_assets(count: 2)).to contain_exactly("assets/file-1-123.jpg")
+      expect(subject.clean_assets(version_limit: 2)).to contain_exactly("assets/file-1-123.jpg")
     end
 
     it "should wait atleast 'version_ttl' seconds before deleting old versions" do

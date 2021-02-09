@@ -112,7 +112,7 @@ class S3AssetDeploy::Manager
   # keep the latest version, 2 backups and any created within the past hour (version_ttl).
   # When assets are removed completely, they are tagged with a removed_at timestamp
   # and eventually deleted based on the removed_ttl.
-  def clean_assets(count: 2, version_ttl: 3600, removed_ttl: 172800, dry_run: false)
+  def clean_assets(version_limit: 2, version_ttl: 3600, removed_ttl: 172800, dry_run: false)
     verify_no_duplicate_assets!
 
     version_ttl = version_ttl.to_i
@@ -137,7 +137,7 @@ class S3AssetDeploy::Manager
       end.reverse.each_with_index.drop_while do |version, index|
         # If the asset has been completely removed from our set of assets
         # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
-        # Otherwise, use version_ttl and count to dermine whether version should be kept.
+        # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
         if !current_fingerprinted_path
           obj_tagging = s3.get_object_tagging(version.asset.key)
           tag_set = obj_tagging.tag_set
@@ -161,9 +161,9 @@ class S3AssetDeploy::Manager
             true
           end
         else
-          # Keep if under age or within the count limit
+          # Keep if under age or within the version_limit
           version_age = [0, Time.now - version.asset.last_modified].max
-          version_age < version_ttl || index < count
+          version_age < version_ttl || index < version_limit
         end
       end.each do |version, index|
         assets_to_delete << version.asset.key
