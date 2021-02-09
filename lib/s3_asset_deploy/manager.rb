@@ -141,10 +141,10 @@ class S3AssetDeploy::Manager
         if !current_fingerprinted_path
           obj_tagging = s3.get_object_tagging(version.asset.key)
           tag_set = obj_tagging.tag_set
-          removed_at = tag_set.find { |t| t[:key] == "removed_at" }
+          removed_at_tag = tag_set.find { |t| t[:key] == "removed_at" }
 
-          if removed_at
-            removed_at = Time.parse(removed_at)
+          if removed_at_tag
+            removed_at = Time.parse(removed_at_tag[:value])
             asset_removed_age = Time.now.utc - removed_at
             log "Determining how long ago #{version.asset.key} was removed - removed on #{removed_at} (#{asset_removed_age} seconds ago)"
             asset_removed_age < removed_age
