@@ -77,6 +77,15 @@ class S3AssetDeploy::Manager
     s3.put_object_tagging(bucket: bucket_name, key: key, tagging: { tag_set: tag_set })
   end
 
+  def delete_objects(keys = [])
+    s3.delete_objects(
+      bucket: bucket_name,
+      delete: {
+        objects: keys.map { |key| { key: key } }
+      }
+    )
+  end
+
   # TODO: consider reduced redundancy
   def upload_asset(asset_path)
     file_handle = File.open(local_asset_collector.full_file_path(asset_path))
@@ -171,12 +180,7 @@ class S3AssetDeploy::Manager
     end
 
     if !assets_to_delete.empty? && !dry_run
-      s3.delete_objects(
-        bucket: bucket_name,
-        delete: {
-          objects: assets_to_delete.map { |asset| { key: asset } }
-        }
-      )
+      delete_objects(assets_to_delete)
     end
 
     assets_to_delete
