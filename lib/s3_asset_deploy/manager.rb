@@ -139,7 +139,7 @@ class S3AssetDeploy::Manager
         # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
         # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
         if !current_fingerprinted_path
-          obj_tagging = s3.get_object_tagging(version.asset.key)
+          obj_tagging = get_object_tagging(version.asset.key)
           tag_set = obj_tagging.tag_set
           removed_at_tag = tag_set.find { |t| t[:key] == "removed_at" }
 
@@ -152,7 +152,7 @@ class S3AssetDeploy::Manager
             log "Adding removed_at tag to #{version.asset.key}"
 
             if !dry_run
-              s3.put_object_tagging(
+              put_object_tagging(
                 version.asset.key,
                 tag_set.push(key: :removed_at, value: Time.now.utc.iso8601)
               )
