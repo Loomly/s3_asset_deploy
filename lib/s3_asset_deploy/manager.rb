@@ -80,9 +80,7 @@ class S3AssetDeploy::Manager
   def delete_objects(keys = [])
     s3.delete_objects(
       bucket: bucket_name,
-      delete: {
-        objects: keys.map { |key| { key: key } }
-      }
+      delete: { objects: keys.map { |key| { key: key }} }
     )
   end
 
