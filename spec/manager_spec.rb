@@ -9,10 +9,19 @@ RSpec.describe S3AssetDeploy::Manager do
 
       def delete_objects(*args)
       end
+
+      def get_object_tagging(*args)
+        OpenStruct.new(tag_set: [])
+      end
+
+      def put_object_tagging(*args)
+      end
     end
   end
 
-  before { allow_any_instance_of(described_class).to receive(:s3) { s3_client.new } }
+  let(:s3_client_instance) { s3_client.new }
+
+  before { allow_any_instance_of(described_class).to receive(:s3) { s3_client_instance } }
   before { allow_any_instance_of(described_class).to receive(:log) {} }
 
   describe "#local_assets_to_upload" do
@@ -31,20 +40,55 @@ RSpec.describe S3AssetDeploy::Manager do
   end
 
   describe "#clean_assets" do
-    it "should delete removed files" do
-      expect(subject).to receive(:remote_assets).at_least(:once).and_return([
-        OpenStruct.new(key: "assets/file-1-12345.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
-        OpenStruct.new(key: "assets/file-2-34567.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
-        OpenStruct.new(key: "assets/file-3-9876666.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC"))
-      ])
-      expect(subject).to receive(:local_asset_paths).at_least(:once).and_return([
-        "assets/file-1-12345.jpg"
-      ])
+    it "should tag untagged removed files" do
+      Timecop.freeze(Time.now) do
+        remote_assets = [
+          OpenStruct.new(key: "assets/file-1-12345.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
+          OpenStruct.new(key: "assets/file-2-34567.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
+          OpenStruct.new(key: "assets/file-3-9876666.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC"))
+        ]
+        expect(subject).to receive(:remote_assets).at_least(:once).and_return(remote_assets)
+        expect(subject).to receive(:local_asset_paths).at_least(:once).and_return([
+          "assets/file-1-12345.jpg"
+        ])
 
-      expect(subject.clean_assets).to contain_exactly("assets/file-2-34567.jpg", "assets/file-3-9876666.jpg")
+        expect(subject).to receive(:put_object_tagging).once.with(
+          "assets/file-2-34567.jpg",
+          array_including(key: :removed_at, value: Time.now.utc.iso8601)
+        )
+        expect(subject).to receive(:put_object_tagging).once.with(
+          "assets/file-3-9876666.jpg",
+          array_including(key: :removed_at, value: Time.now.utc.iso8601)
+        )
+
+        expect(subject.clean_assets).to match_array([])
+      end
     end
 
-    it "should keep old versions up to 'count'" do
+    it "should delete remote assets only after 'removed_ttl'" do
+      Timecop.freeze(Time.now) do
+        remote_assets = [
+          OpenStruct.new(key: "assets/file-1-12345.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
+          OpenStruct.new(key: "assets/file-2-34567.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
+          OpenStruct.new(key: "assets/file-3-9876666.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC"))
+        ]
+        expect(subject).to receive(:remote_assets).at_least(:once).and_return(remote_assets)
+        expect(subject).to receive(:local_asset_paths).at_least(:once).and_return([
+          "assets/file-1-12345.jpg"
+        ])
+
+        expect(subject).to receive(:get_object_tagging).once
+          .with("assets/file-2-34567.jpg")
+          .and_return(OpenStruct.new(tag_set: [{ key: "removed_at", value: (Time.now - 172801).utc.iso8601 }]))
+        expect(subject).to receive(:get_object_tagging).once
+          .with("assets/file-3-9876666.jpg")
+          .and_return(OpenStruct.new(tag_set: [{ key: "removed_at", value: (Time.now - 172799).utc.iso8601 }]))
+
+        expect(subject.clean_assets(removed_ttl: 172800)).to contain_exactly("assets/file-2-34567.jpg")
+      end
+    end
+
+    it "should keep old versions up to 'version_limit'" do
       expect(subject).to receive(:remote_assets).at_least(:once).and_return([
         OpenStruct.new(key: "assets/file-1-123.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
         OpenStruct.new(key: "assets/file-1-456.jpg", last_modified: Time.parse("2018-05-02 15:38:31 UTC")),
@@ -62,10 +106,10 @@ RSpec.describe S3AssetDeploy::Manager do
         "assets/file-3-9876666.jpg"
       ])
 
-      expect(subject.clean_assets(count: 2)).to contain_exactly("assets/file-1-123.jpg")
+      expect(subject.clean_assets(version_limit: 2)).to contain_exactly("assets/file-1-123.jpg")
     end
 
-    it "should wait atleast 'age' seconds before deleting old versions" do
+    it "should wait atleast 'version_ttl' seconds before deleting old versions" do
       Timecop.freeze(Time.now) do
         expect(subject).to receive(:remote_assets).at_least(:once).and_return([
           OpenStruct.new(key: "assets/file-1-123.jpg", last_modified: (Time.now - 4)),
@@ -81,7 +125,7 @@ RSpec.describe S3AssetDeploy::Manager do
         expect(subject.clean_assets).to be_empty
 
         Timecop.travel(Time.now + 3600)
-        expect(subject.clean_assets).to contain_exactly("assets/file-1-123.jpg")
+        expect(subject.clean_assets(version_ttl: 3600)).to contain_exactly("assets/file-1-123.jpg")
       end
     end
 
