@@ -52,11 +52,11 @@ RSpec.describe S3AssetDeploy::Manager do
           "assets/file-1-12345.jpg"
         ])
 
-        expect(s3_client_instance).to receive(:put_object_tagging).once.with(
+        expect(subject).to receive(:put_object_tagging).once.with(
           "assets/file-2-34567.jpg",
           array_including(key: :removed_at, value: Time.now.utc.iso8601)
         )
-        expect(s3_client_instance).to receive(:put_object_tagging).once.with(
+        expect(subject).to receive(:put_object_tagging).once.with(
           "assets/file-3-9876666.jpg",
           array_including(key: :removed_at, value: Time.now.utc.iso8601)
         )
@@ -77,10 +77,10 @@ RSpec.describe S3AssetDeploy::Manager do
           "assets/file-1-12345.jpg"
         ])
 
-        expect(s3_client_instance).to receive(:get_object_tagging).once
+        expect(subject).to receive(:get_object_tagging).once
           .with("assets/file-2-34567.jpg")
           .and_return(OpenStruct.new(tag_set: [{ key: "removed_at", value: (Time.now - 172801).utc.iso8601 }]))
-        expect(s3_client_instance).to receive(:get_object_tagging).once
+        expect(subject).to receive(:get_object_tagging).once
           .with("assets/file-3-9876666.jpg")
           .and_return(OpenStruct.new(tag_set: [{ key: "removed_at", value: (Time.now - 172799).utc.iso8601 }]))
 
@@ -125,7 +125,7 @@ RSpec.describe S3AssetDeploy::Manager do
         expect(subject.clean_assets).to be_empty
 
         Timecop.travel(Time.now + 3600)
-        expect(subject.clean_assets).to contain_exactly("assets/file-1-123.jpg")
+        expect(subject.clean_assets(version_ttl: 3600)).to contain_exactly("assets/file-1-123.jpg")
       end
     end
 
