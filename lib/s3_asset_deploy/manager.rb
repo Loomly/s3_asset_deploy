@@ -118,7 +118,7 @@ class S3AssetDeploy::Manager
     version_ttl = version_ttl.to_i
     removed_ttl = removed_ttl.to_i
 
-    log "Cleaning assets from #{bucket_name} S3 bucket"
+    log "Cleaning assets from #{bucket_name} S3 bucket. Dry run: #{dry_run}"
     assets_to_delete = []
 
     unless local_assets_to_upload.empty?
