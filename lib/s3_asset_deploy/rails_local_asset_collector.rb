@@ -2,7 +2,7 @@ require "s3_asset_deploy/local_asset"
 require "s3_asset_deploy/local_asset_collector"
 
 class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollector
-  def asset
+  def assets
     assets_from_manifest + pack_assets
   end
 
