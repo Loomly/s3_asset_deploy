@@ -1,7 +1,7 @@
 require "spec_helper"
 
 RSpec.describe S3AssetDeploy::Manager do
-  subject { described_class.new("test-bucket") }
+  subject { described_class.new("test-bucket", logger: Logger.new(IO::NULL) ) }
   let(:s3_client) do
     Class.new do
       def put_object(*args)
@@ -22,20 +22,22 @@ RSpec.describe S3AssetDeploy::Manager do
   let(:s3_client_instance) { s3_client.new }
 
   before { allow_any_instance_of(described_class).to receive(:s3) { s3_client_instance } }
-  before { allow_any_instance_of(described_class).to receive(:log) {} }
 
   describe "#local_assets_to_upload" do
     it "should only return assets not on remote" do
-      expect(subject).to receive(:remote_assets).at_least(:once).and_return([
-        OpenStruct.new(key: "assets/file-1-12345.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")),
+      expect_any_instance_of(S3AssetDeploy::RemoteAssetCollector).to receive(:assets).once.and_return([
+        S3AssetDeploy::RemoteAsset.new(OpenStruct.new(key: "assets/file-1-12345.jpg", last_modified: Time.parse("2018-05-01 15:38:31 UTC")))
       ])
-      expect(subject).to receive(:local_asset_paths).at_least(:once).and_return([
-        "assets/file-1-12345.jpg",
-        "assets/file-2-34567.jpg",
-        "assets/file-3-9876666.jpg"
+      expect_any_instance_of(S3AssetDeploy::RailsLocalAssetCollector).to receive(:assets).once.and_return([
+        S3AssetDeploy::LocalAsset.new("assets/file-1-12345.jpg"),
+        S3AssetDeploy::LocalAsset.new("assets/file-2-34567.jpg"),
+        S3AssetDeploy::LocalAsset.new("assets/file-3-9876666.jpg")
       ])
 
-      expect(subject.local_assets_to_upload).to contain_exactly("assets/file-2-34567.jpg", "assets/file-3-9876666.jpg")
+      expect(subject.local_assets_to_upload).to contain_exactly(
+        S3AssetDeploy::LocalAsset.new("assets/file-2-34567.jpg"),
+        S3AssetDeploy::LocalAsset.new("assets/file-3-9876666.jpg")
+      )
     end
   end
 
