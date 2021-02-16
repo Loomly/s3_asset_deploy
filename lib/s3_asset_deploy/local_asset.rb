@@ -19,8 +19,8 @@ class S3AssetDeploy::LocalAsset
     AssetHelper.mime_type_for_extension(path).to_s
   end
 
-  def to_s
-    path
+  def ==(other_asset)
+    path == other_asset.path
   end
 
   protected

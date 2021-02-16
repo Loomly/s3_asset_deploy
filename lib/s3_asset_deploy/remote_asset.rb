@@ -18,4 +18,8 @@ class S3AssetDeploy::RemoteAsset
   def path
     s3_object.key
   end
+
+  def ==(other_asset)
+    path == other_asset.path
+  end
 end
