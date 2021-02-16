@@ -4,7 +4,7 @@ require "s3_asset_deploy/remote_asset"
 class S3AssetDeploy::RemoteAssetCollector
   attr_reader :bucket_name
 
-  def initalize(bucket_name, s3_client_options: {})
+  def initialize(bucket_name, s3_client_options: {})
     @bucket_name = bucket_name
     @s3_client_options = {
       region: "us-east-1",
