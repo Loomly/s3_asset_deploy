@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "aws-sdk-s3"
 require "s3_asset_deploy/remote_asset"
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "s3_asset_deploy/asset_helper"
 
 class S3AssetDeploy::LocalAsset

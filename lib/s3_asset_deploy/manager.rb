@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "logger"
-require "ostruct"
 require "time"
 require "aws-sdk-s3"
 require "s3_asset_deploy/errors"

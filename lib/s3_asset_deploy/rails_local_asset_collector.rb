@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "s3_asset_deploy/local_asset"
 require "s3_asset_deploy/local_asset_collector"
 
