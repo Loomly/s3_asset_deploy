@@ -51,10 +51,10 @@ Since it's yielding to the block after uploading, but before cleaning, the block
 ### Initializing `S3AssetDeploy::Manager`
 You'll need to initialize `S3AssetDeploy::Manager` with an S3 bucket name and optionally:
 
-- s3_client_options -> A hash that is passed directly to [`Aws::S3::Client#initialize`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#initialize-instance_method) to configure the S3 client. By default the region is set to `us-east-1`.
-- logger -> A custom logger. By default things are logged to `STDOUT`.
-- local_asset_collector -> A custom instance of `S3AssetDeploy::LocalAssetCollector`. This allows you to customize how locally compiled assets are collected.
-- upload_options -> A hash consisting of options that are passed directly to [`Aws::S3::Client#put_object`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#put_object-instance_method) when each asset is uploaded. By default `acl` is set to `public-read` and `cache_control` is set to `public, max-age=31536000`.
+- **s3_client_options** (Hash) -> A hash that is passed directly to [`Aws::S3::Client#initialize`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#initialize-instance_method) to configure the S3 client. By default the region is set to `us-east-1`.
+- **logger** (Logger) -> A custom logger. By default things are logged to `STDOUT`.
+- **local_asset_collector** (S3AssetDeploy::LocalAssetCollector) -> A custom instance of `S3AssetDeploy::LocalAssetCollector`. This allows you to customize how locally compiled assets are collected.
+- **upload_options** (Hash) -> A hash consisting of options that are passed directly to [`Aws::S3::Client#put_object`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#put_object-instance_method) when each asset is uploaded. By default `acl` is set to `public-read` and `cache_control` is set to `public, max-age=31536000`.
 
 Here's an example:
 
@@ -79,11 +79,11 @@ This will upload new assets and perform a clean, which deletes removed assets an
 With the arguments used above, the clean process will keep the latest version on S3, two of the most recent older versions (`version_limit`), and any versions created within the last hour (`version_ttl`).
 If you there are assets that are in your S3 bucket but no longer included in your locally compiled bundle, they will be deleted from S3 using the `removed_ttl` (after two days in the case above). This process uses [S3 object tagging](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#put_object_tagging-instance_method) to track `removed_at` timestamps. Here are a list of all the options you can pass to `#deploy`:
 
-- version_limit (Integer) -> Max number of older versions of an asset to keep around. Default is `2`
-- version_ttl (Integer) -> Number of seconds to keep newly uploaded versions before deleting according to `version_limit`. If a version is still within the `version_ttl`, it will be kept on S3 even if the total number of versions is beyond `version_limit`. Default is `3600`
-- removed_ttl (Integer) -> Number of seconds to keep assets on S3 that have been removed from your compiled set of assets. If the age of a removed asset expires according to `removed_ttl`, it will be deleted on the next deploy. Default is `172800`.
-- clean (Boolean) -> Skip the clean process during a deploy. Default is `true`.
-- dry_run (Boolean) -> Run deploy in read-only mode. This is helpful for debugging purposes and seeing plan of what would happen without performing any writes or deletes. Default is `false`.
+- **version_limit** (Integer) -> Max number of older versions of an asset to keep around. Default is `2`
+- **version_ttl** (Integer) -> Number of seconds to keep newly uploaded versions before deleting according to `version_limit`. If a version is still within the `version_ttl`, it will be kept on S3 even if the total number of versions is beyond `version_limit`. Default is `3600`
+- **removed_ttl** (Integer) -> Number of seconds to keep assets on S3 that have been removed from your compiled set of assets. If the age of a removed asset expires according to `removed_ttl`, it will be deleted on the next deploy. Default is `172800`.
+- **clean** (Boolean) -> Skip the clean process during a deploy. Default is `true`.
+- **dry_run** (Boolean) -> Run deploy in read-only mode. This is helpful for debugging purposes and seeing plan of what would happen without performing any writes or deletes. Default is `false`.
 
 `S3AssetDeploy::Manager#deploy` performs its work by delegating to `S3AssetDeploy#upload` and `S3AssetDeploy#clean`, which you can call yourself if you need some more control.
 
