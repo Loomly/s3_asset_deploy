@@ -89,8 +89,10 @@ If you there are assets that are in your S3 bucket but no longer included in you
 
 
 ```ruby
+# Upload new assets
 manager.upload
 
+# Delete old versions and removed assets from S3
 manager.clean
 ```
 
