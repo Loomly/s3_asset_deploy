@@ -96,10 +96,17 @@ class S3AssetDeploy::Manager
     s3_keys_to_delete
   end
 
-  def deploy(clean = true)
-    upload_assets
+  def deploy(version_limit: 2, version_ttl: 3600, removed_ttl: 172800, clean: true, dry_run: false)
+    upload_assets(dry_run: dry_run)
     yield if block_given?
-    clean_assets if clean
+    if clean
+      clean_assets(
+        dry_run: dry_run,
+        version_limit: version_limit,
+        version_ttl: version_ttl,
+        removed_ttl: removed_ttl
+      )
+    end
   end
 
   def to_s
