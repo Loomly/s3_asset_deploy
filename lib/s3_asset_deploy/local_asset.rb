@@ -23,6 +23,10 @@ class S3AssetDeploy::LocalAsset
     path == other_asset.path
   end
 
+  def to_s
+    path
+  end
+
   protected
 
   def public_path

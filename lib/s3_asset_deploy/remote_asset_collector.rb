@@ -29,4 +29,12 @@ class S3AssetDeploy::RemoteAssetCollector
   def grouped_assets
     assets.group_by(&:original_path)
   end
+
+  def to_s
+    "#<#{self.class.name}:#{"0x0000%x" % (object_id << 1)} @bucket_name='#{bucket_name}'>"
+  end
+
+  def inspect
+    to_s
+  end
 end

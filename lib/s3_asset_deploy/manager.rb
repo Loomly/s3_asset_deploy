@@ -16,7 +16,7 @@ class S3AssetDeploy::Manager
   attr_reader :bucket_name, :logger, :local_asset_collector, :remote_asset_collector
 
   def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil)
-    @bucket_name = bucket_name
+    @bucket_name = bucket_name.to_s
     @logger = logger || Logger.new(STDOUT)
 
     @local_asset_collector = local_asset_collector || S3AssetDeploy::RailsLocalAssetCollector.new
@@ -166,6 +166,14 @@ class S3AssetDeploy::Manager
     upload_assets
     yield if block_given?
     clean_assets if clean
+  end
+
+  def to_s
+    "#<#{self.class.name}:#{"0x0000%x" % (object_id << 1)} @bucket_name='#{bucket_name}'>"
+  end
+
+  def inspect
+    to_s
   end
 
   def log(msg)
