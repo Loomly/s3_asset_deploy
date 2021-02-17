@@ -59,7 +59,6 @@ class S3AssetDeploy::Manager
     )
   end
 
-  # TODO: consider reduced redundancy
   def upload_asset(asset)
     file_handle = File.open(asset.full_path)
 
