@@ -27,23 +27,6 @@ class S3AssetDeploy::Manager
     @upload_asset_options = upload_asset_options
   end
 
-  def upload_asset(asset)
-    file_handle = File.open(asset.full_path)
-
-    params = {
-      bucket: bucket_name,
-      key: asset.path,
-      body: file_handle,
-      acl: "public-read",
-      content_type: asset.mime_type,
-      cache_control: "public, max-age=31536000"
-    }.merge(@upload_asset_options)
-
-    put_object(params)
-  ensure
-    file_handle.close
-  end
-
   def local_assets_to_upload
     remote_asset_paths = remote_asset_collector.asset_paths
     local_asset_collector.assets.reject { |asset| remote_asset_paths.include?(asset.path) }
@@ -147,6 +130,23 @@ class S3AssetDeploy::Manager
   end
 
   protected
+
+  def upload_asset(asset)
+    file_handle = File.open(asset.full_path)
+
+    params = {
+      bucket: bucket_name,
+      key: asset.path,
+      body: file_handle,
+      acl: "public-read",
+      content_type: asset.mime_type,
+      cache_control: "public, max-age=31536000"
+    }.merge(@upload_asset_options)
+
+    put_object(params)
+  ensure
+    file_handle.close
+  end
 
   def s3
     @s3 ||= Aws::S3::Client.new(@s3_client_options)
