@@ -48,7 +48,7 @@ end
 
 Since it's yielding to the block after uploading, but before cleaning, the block is an ideal place to perform a deploy, especially if it's a rolling deploy across multiple servers. If you want to perform an upload or a clean without using `#deploy`, you can call `#upload` or `#clean` directly. For more configuration options, see below.
 
-### Initializing [`S3AssetDeploy::Manager`](https://github.com/Loomly/s3_asset_deploy/blob/master/lib/s3_asset_deploy/manager.rb)
+### Initializing [`S3AssetDeploy::Manager`](https://github.com/Loomly/s3_asset_deploy/blob/main/lib/s3_asset_deploy/manager.rb)
 You'll need to initialize `S3AssetDeploy::Manager` with an S3 bucket name and optionally:
 
 - **s3_client_options** (Hash) -> A hash that is passed directly to [`Aws::S3::Client#initialize`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#initialize-instance_method) to configure the S3 client. By default the region is set to `us-east-1`.
@@ -101,7 +101,7 @@ manager.clean
 
 
 ## Customizing local asset collection
-By default, `S3AssetDeploy::Manager` will use [`S3AssetDeploy::RailsLocalAssetCollector`](https://github.com/Loomly/s3_asset_deploy/blob/master/lib/s3_asset_deploy/rails_local_asset_collector.rb) to collect locally compiled assets. This will use the `Sprockets::Manifest` and `Webpacker` config (if `Webpacker` is installed)to locate the compiled assets. `S3AssetDeploy::RailsLocalAssetCollector` inherits from the [`S3AssetDeploy::LocalAssetCollector`](https://github.com/Loomly/s3_asset_deploy/blob/master/lib/s3_asset_deploy/local_asset_collector.rb) base class. You can completely customize how your local assets are collected for deploys by creating your own class that inherits from `S3AssetDeploy::LocalAssetCollector` and passing it into the manager. You'll want override `S3AssetDeploy::LocalAssetCollector#assets` in your custom collector such that it returns an array of `S3AssetDeploy::LocalAsset` instances. Here's a basic example:
+By default, `S3AssetDeploy::Manager` will use [`S3AssetDeploy::RailsLocalAssetCollector`](https://github.com/Loomly/s3_asset_deploy/blob/main/lib/s3_asset_deploy/rails_local_asset_collector.rb) to collect locally compiled assets. This will use the `Sprockets::Manifest` and `Webpacker` config (if `Webpacker` is installed)to locate the compiled assets. `S3AssetDeploy::RailsLocalAssetCollector` inherits from the [`S3AssetDeploy::LocalAssetCollector`](https://github.com/Loomly/s3_asset_deploy/blob/main/lib/s3_asset_deploy/local_asset_collector.rb) base class. You can completely customize how your local assets are collected for deploys by creating your own class that inherits from `S3AssetDeploy::LocalAssetCollector` and passing it into the manager. You'll want override `S3AssetDeploy::LocalAssetCollector#assets` in your custom collector such that it returns an array of `S3AssetDeploy::LocalAsset` instances. Here's a basic example:
 
 
 ```ruby
@@ -142,7 +142,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/Loomly/s3_asset_deploy. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/Loomly/s3_asset_deploy/blob/master/CODE_OF_CONDUCT.md).
+Bug reports and pull requests are welcome on GitHub at https://github.com/Loomly/s3_asset_deploy. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/Loomly/s3_asset_deploy/blob/main/CODE_OF_CONDUCT.md).
 
 ## License
 
@@ -150,4 +150,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the S3AssetDeploy project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/Loomly/s3_asset_deploy/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the S3AssetDeploy project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/Loomly/s3_asset_deploy/blob/main/CODE_OF_CONDUCT.md).
