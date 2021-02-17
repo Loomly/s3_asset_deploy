@@ -162,7 +162,7 @@ class S3AssetDeploy::Manager
     s3_keys_to_delete
   end
 
-  def sync(clean = true)
+  def deploy(clean = true)
     upload_assets
     yield if block_given?
     clean_assets if clean
