@@ -1,6 +1,6 @@
 require "mime/types"
 
-class AssetHelper
+class S3AssetDeploy::AssetHelper
   FINGERPRINTED_ASSET_REGEX = /\A(.*)-([[:alnum:]]+)((?:(?:\.[[:alnum:]]+))+)\z/.freeze
 
   def self.remove_fingerprint(path)
@@ -9,7 +9,7 @@ class AssetHelper
     "#{match_data[1]}#{match_data[3]}"
   end
 
-  def self.mime_type_for_extension(path)
+  def self.mime_type_for_path(path)
     extension = File.extname(path)[1..-1]
     return "application/json" if extension == "map"
     MIME::Types.type_for(extension).first

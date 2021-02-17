@@ -8,7 +8,7 @@ class S3AssetDeploy::RemoteAsset
   end
 
   def original_path
-    @original_path ||= AssetHelper.remove_fingerprint(path)
+    @original_path ||= S3AssetDeploy::AssetHelper.remove_fingerprint(path)
   end
 
   def last_modified

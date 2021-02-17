@@ -8,7 +8,7 @@ class S3AssetDeploy::LocalAsset
   end
 
   def original_path
-    @original_path ||= AssetHelper.remove_fingerprint(path)
+    @original_path ||= S3AssetDeploy::AssetHelper.remove_fingerprint(path)
   end
 
   def full_path
@@ -16,7 +16,7 @@ class S3AssetDeploy::LocalAsset
   end
 
   def mime_type
-    AssetHelper.mime_type_for_extension(path).to_s
+    S3AssetDeploy::AssetHelper.mime_type_for_path(path).to_s
   end
 
   def ==(other_asset)
