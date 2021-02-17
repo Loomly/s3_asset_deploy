@@ -110,12 +110,13 @@ class S3AssetDeploy::Manager
       return s3_keys_to_delete
     end
 
+    local_asset_map = local_asset_collector.asset_map
     remote_asset_collector.grouped_assets.each do |original_path, versions|
-      current_asset = local_asset_collector.asset_map[original_path]
+      current_asset = local_asset_map[original_path]
 
       versions.reject do |version|
         # Remove current asset versions from the list
-        version.path == current_asset.path
+        version.path == current_asset.path if current_asset
       end.sort_by do |version|
         version.last_modified
       end.reverse.each_with_index.drop_while do |version, index|
