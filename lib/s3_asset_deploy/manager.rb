@@ -9,10 +9,6 @@ require "s3_asset_deploy/rails_local_asset_collector"
 require "s3_asset_deploy/remote_asset_collector"
 
 class S3AssetDeploy::Manager
-  FINGERPRINTED_ASSET_REGEX = /\A(.*)-([[:alnum:]]+)((?:(?:\.[[:alnum:]]+))+)\z/.freeze
-
-  class DuplicateAssetsError < StandardError; end
-
   attr_reader :bucket_name, :logger, :local_asset_collector, :remote_asset_collector
 
   def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil)
