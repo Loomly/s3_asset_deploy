@@ -1,6 +1,17 @@
 # S3AssetDeploy
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/s3_asset_deploy`. To experiment with that code, run `bin/console` for an interactive prompt.
+This is what we use at Loomly to safely deploy our web assets to S3 to be served via Cloudfront during rolling deploys.
+This gem is designed to clean unneeded assets from S3 in a safe manner such that older versions or recently removed assets are kept on S3 during the rolling deploy process. It also maintains a version limit and TTL (time-to-live) on assets to avoid deleting older versions (up to a limit) or those that have been recently removed.
+
+## Why?
+
+At the very beginning, we were serving our assets from our webservers. This isn't ideal for many reasons but one big one is that this is problematic during rolling deploys where you temporarily have some web servers with new assets and some web servers with old assets during the rolling deploy process. When round-robbining requests to instances behind a load balancer this can result in requests for assets hitting web servers that don't have the asset being requested (either the new or the old depending on what web server and what's being requested). We then moved our assets to S3 and began using [asset_sync](https://github.com/AssetSync/asset_sync). We had a lot of problems with `asset_sync`, some of which being:
+
+- It depended on the [fog](https://github.com/fog/fog) gem which was an extra dependency we really didn't need especially since we already had the `aws` gem as a dependency.
+- It seemed overly complex, especially around configuration. This likely stems from trying to support so many different storage options and abstractions/configuration options needed for that.
+- It didn't have a way to remove outdated or old assets from storage (in this case S3).
+
+As a first pass, we hacked and monkey patched `asset_sync` to work how we wanted and this worked for a while but was overly complicated for what we needed. We then took inspiration from that and wrote our own little library inside our Rails app to work just how we needed. We figured this could be useful to others, so we then moved it to an open source gem. While Rails is a "first-class citizen", this gem can be used with other frameworks by writing your own `S3AssetDeploy::LocalAssetCollector`. See the `Usage` section below for more details.
 
 ## Installation
 
