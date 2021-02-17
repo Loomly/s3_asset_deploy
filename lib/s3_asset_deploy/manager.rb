@@ -77,27 +77,8 @@ class S3AssetDeploy::Manager
       # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
       versions_to_delete = versions_to_delete.each_with_index.drop_while do |version, index|
         if !current_asset
-          obj_tagging = get_object_tagging(version.path)
-          tag_set = obj_tagging.tag_set
-          removed_at_tag = tag_set.find { |t| t[:key] == "removed_at" }
-
-          if removed_at_tag
-            removed_at = Time.parse(removed_at_tag[:value])
-            removed_age = Time.now.utc - removed_at
-            log "Determining how long ago #{version.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)"
-            removed_age < removed_ttl
-          else
-            log "Adding removed_at tag to #{version.path}"
-
-            if !dry_run
-              put_object_tagging(
-                version.path,
-                tag_set.push(key: :removed_at, value: Time.now.utc.iso8601)
-              )
-            end
-
-            true
-          end
+          removed_at, removed_age = find_or_create_removed_at_tag(version)
+          removed_age == 0 || removed_age < removed_ttl
         else
           # Keep if under age or within the version_limit
           version_age = [0, Time.now - version.last_modified].max
@@ -130,6 +111,32 @@ class S3AssetDeploy::Manager
   end
 
   protected
+
+  def find_or_create_removed_at_tag(asset, dry_run: false)
+    obj_tagging = get_object_tagging(asset.path)
+    tag_set = obj_tagging.tag_set
+    removed_at_tag = tag_set.find { |t| t[:key] == "removed_at" }
+
+    if removed_at_tag
+      removed_at = Time.parse(removed_at_tag[:value])
+      removed_age = Time.now.utc - removed_at
+      log "Determining how long ago #{asset.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)"
+
+      [removed_at, removed_age]
+    else
+      log "Adding removed_at tag to #{asset.path}"
+      removed_at = Time.now.utc
+
+      if !dry_run
+        put_object_tagging(
+          asset.path,
+          tag_set.push(key: :removed_at, value: removed_at.iso8601)
+        )
+      end
+
+      [removed_at, 0]
+    end
+  end
 
   def upload_asset(asset)
     file_handle = File.open(asset.full_path)
