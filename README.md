@@ -48,7 +48,7 @@ end
 
 Since it's yielding to the block after uploading, but before cleaning, the block is an ideal place to perform a deploy, especially if it's a rolling deploy across multiple servers. If you want to perform an upload or a clean without using `#deploy`, you can call `#upload` or `#clean` directly. For more configuration options, see below.
 
-### Initializing `S3AssetDeploy::Manager`
+### Initializing [`S3AssetDeploy::Manager`](https://github.com/Loomly/s3_asset_deploy/blob/master/lib/s3_asset_deploy/manager.rb)
 You'll need to initialize `S3AssetDeploy::Manager` with an S3 bucket name and optionally:
 
 - **s3_client_options** (Hash) -> A hash that is passed directly to [`Aws::S3::Client#initialize`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#initialize-instance_method) to configure the S3 client. By default the region is set to `us-east-1`.
