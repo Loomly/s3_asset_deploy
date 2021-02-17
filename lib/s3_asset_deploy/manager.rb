@@ -176,6 +176,8 @@ class S3AssetDeploy::Manager
     to_s
   end
 
+  protected
+
   def log(msg)
     logger.info("#{self.class.name}: #{msg}")
   end
