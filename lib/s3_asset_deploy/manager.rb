@@ -27,35 +27,6 @@ class S3AssetDeploy::Manager
     @upload_asset_options = upload_asset_options
   end
 
-  def s3
-    @s3 ||= Aws::S3::Client.new(@s3_client_options)
-  end
-
-  def verify_no_duplicate_assets!
-    if local_asset_collector.original_asset_paths.uniq.length != local_asset_collector.asset_paths.length
-      raise S3AssetDeploy::DuplicateAssetsError
-    end
-  end
-
-  def put_object(object)
-    s3.put_object(object)
-  end
-
-  def get_object_tagging(key)
-    s3.get_object_tagging(bucket: bucket_name, key: key)
-  end
-
-  def put_object_tagging(key, tag_set)
-    s3.put_object_tagging(bucket: bucket_name, key: key, tagging: { tag_set: tag_set })
-  end
-
-  def delete_objects(keys = [])
-    s3.delete_objects(
-      bucket: bucket_name,
-      delete: { objects: keys.map { |key| { key: key }} }
-    )
-  end
-
   def upload_asset(asset)
     file_handle = File.open(asset.full_path)
 
@@ -176,6 +147,35 @@ class S3AssetDeploy::Manager
   end
 
   protected
+
+  def s3
+    @s3 ||= Aws::S3::Client.new(@s3_client_options)
+  end
+
+  def verify_no_duplicate_assets!
+    if local_asset_collector.original_asset_paths.uniq.length != local_asset_collector.asset_paths.length
+      raise S3AssetDeploy::DuplicateAssetsError
+    end
+  end
+
+  def put_object(object)
+    s3.put_object(object)
+  end
+
+  def get_object_tagging(key)
+    s3.get_object_tagging(bucket: bucket_name, key: key)
+  end
+
+  def put_object_tagging(key, tag_set)
+    s3.put_object_tagging(bucket: bucket_name, key: key, tagging: { tag_set: tag_set })
+  end
+
+  def delete_objects(keys = [])
+    s3.delete_objects(
+      bucket: bucket_name,
+      delete: { objects: keys.map { |key| { key: key }} }
+    )
+  end
 
   def log(msg)
     logger.info("#{self.class.name}: #{msg}")
