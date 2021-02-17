@@ -10,7 +10,7 @@ require "s3_asset_deploy/remote_asset_collector"
 class S3AssetDeploy::Manager
   attr_reader :bucket_name, :logger, :local_asset_collector, :remote_asset_collector
 
-  def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil)
+  def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil, upload_asset_options: {})
     @bucket_name = bucket_name.to_s
     @logger = logger || Logger.new(STDOUT)
 
@@ -24,6 +24,7 @@ class S3AssetDeploy::Manager
       region: "us-east-1",
       logger: @logger
     }.merge(s3_client_options)
+    @upload_asset_options = upload_asset_options
   end
 
   def s3
@@ -65,7 +66,7 @@ class S3AssetDeploy::Manager
       acl: "public-read",
       content_type: asset.mime_type,
       cache_control: "public, max-age=31536000"
-    }
+    }.merge(@upload_asset_options)
 
     put_object(params)
   ensure
