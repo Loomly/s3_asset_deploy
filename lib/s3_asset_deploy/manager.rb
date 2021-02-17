@@ -77,7 +77,7 @@ class S3AssetDeploy::Manager
       # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
       versions_to_delete = versions_to_delete.each_with_index.drop_while do |version, index|
         if !current_asset
-          removed_at, removed_age = find_or_create_removed_at_tag(version)
+          removed_at, removed_age = find_or_create_removed_at_tag(version, dry_run: dry_run)
           removed_age == 0 || removed_age < removed_ttl
         else
           # Keep if under age or within the version_limit
