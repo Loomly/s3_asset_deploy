@@ -1,67 +1,167 @@
 # frozen_string_literal: true
 
 require "logger"
-require "ostruct"
 require "time"
 require "aws-sdk-s3"
+require "s3_asset_deploy/errors"
 require "s3_asset_deploy/rails_local_asset_collector"
+require "s3_asset_deploy/remote_asset_collector"
 
 class S3AssetDeploy::Manager
-  FINGERPRINTED_ASSET_REGEX = /\A(.*)-([[:alnum:]]+)((?:(?:\.[[:alnum:]]+))+)\z/.freeze
+  attr_reader :bucket_name, :logger, :local_asset_collector, :remote_asset_collector
 
-  class DuplicateAssetsError < StandardError; end
-
-  attr_reader :bucket_name, :logger, :local_asset_collector
-
-  def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil)
-    @bucket_name = bucket_name
+  def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil, upload_asset_options: {})
+    @bucket_name = bucket_name.to_s
     @logger = logger || Logger.new(STDOUT)
+
     @local_asset_collector = local_asset_collector || S3AssetDeploy::RailsLocalAssetCollector.new
+    @remote_asset_collector = S3AssetDeploy::RemoteAssetCollector.new(
+      bucket_name,
+      s3_client_options: s3_client_options
+    )
+
     @s3_client_options = {
       region: "us-east-1",
       logger: @logger
     }.merge(s3_client_options)
+    @upload_asset_options = upload_asset_options
   end
 
-  def remote_assets
-    s3.list_objects_v2(bucket: bucket_name).each_with_object([]) do |response, array|
-      array.concat(response.contents)
+  def local_assets_to_upload
+    remote_asset_paths = remote_asset_collector.asset_paths
+    local_asset_collector.assets.reject { |asset| remote_asset_paths.include?(asset.path) }
+  end
+
+  def upload_assets(dry_run: false)
+    verify_no_duplicate_assets!
+
+    local_assets_to_upload.each do |asset|
+      next unless File.file?(asset.full_path)
+      log "Uploading #{asset.path}..."
+      upload_asset(asset) unless dry_run
     end
   end
 
-  def remote_asset_paths
-    remote_assets.map(&:key)
+  # Cleanup old assets on S3. By default it will
+  # keep the latest version, 2 backups and any created within the past hour (version_ttl).
+  # When assets are removed completely, they are tagged with a removed_at timestamp
+  # and eventually deleted based on the removed_ttl.
+  def clean_assets(version_limit: 2, version_ttl: 3600, removed_ttl: 172800, dry_run: false)
+    verify_no_duplicate_assets!
+
+    version_ttl = version_ttl.to_i
+    removed_ttl = removed_ttl.to_i
+
+    log "Cleaning assets from #{bucket_name} S3 bucket. Dry run: #{dry_run}"
+    s3_keys_to_delete = []
+
+    unless local_assets_to_upload.empty?
+      log "WARNING: Please upload latest asset versions to remote host before cleaning."
+      return s3_keys_to_delete
+    end
+
+    local_asset_map = local_asset_collector.asset_map
+    remote_asset_collector.grouped_assets.each do |original_path, versions|
+      current_asset = local_asset_map[original_path]
+
+      # Remove current asset version from the list
+      versions_to_delete = versions.reject do |version|
+        version.path == current_asset.path if current_asset
+      end
+
+      # Sort remaining versions from newest to oldest
+      versions_to_delete = versions_to_delete.sort_by(&:last_modified).reverse
+
+      # If the asset has been completely removed from our set of locally compiled assets
+      # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
+      # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
+      versions_to_delete = versions_to_delete.each_with_index.drop_while do |version, index|
+        if !current_asset
+          removed_at, removed_age = find_or_create_removed_at_tag(version, dry_run: dry_run)
+          removed_age == 0 || removed_age < removed_ttl
+        else
+          # Keep if under age or within the version_limit
+          version_age = [0, Time.now - version.last_modified].max
+          version_age < version_ttl || index < version_limit
+        end
+      end.map(&:first)
+
+      s3_keys_to_delete += versions_to_delete.map(&:path)
+    end
+
+    if !s3_keys_to_delete.empty? && !dry_run
+      delete_objects(s3_keys_to_delete)
+    end
+
+    s3_keys_to_delete
   end
 
-  def grouped_remote_assets
-    remote_assets.map do |asset|
-      OpenStruct.new(logical_path: remove_fingerprint(asset.key), asset: asset)
-    end.group_by { |asset| asset.logical_path }
+  def deploy(clean = true)
+    upload_assets
+    yield if block_given?
+    clean_assets if clean
+  end
+
+  def to_s
+    "#<#{self.class.name}:#{"0x0000%x" % (object_id << 1)} @bucket_name='#{bucket_name}'>"
+  end
+
+  def inspect
+    to_s
+  end
+
+  protected
+
+  def find_or_create_removed_at_tag(asset, dry_run: false)
+    obj_tagging = get_object_tagging(asset.path)
+    tag_set = obj_tagging.tag_set
+    removed_at_tag = tag_set.find { |t| t[:key] == "removed_at" }
+
+    if removed_at_tag
+      removed_at = Time.parse(removed_at_tag[:value])
+      removed_age = Time.now.utc - removed_at
+      log "Determining how long ago #{asset.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)"
+
+      [removed_at, removed_age]
+    else
+      log "Adding removed_at tag to #{asset.path}"
+      removed_at = Time.now.utc
+
+      if !dry_run
+        put_object_tagging(
+          asset.path,
+          tag_set.push(key: :removed_at, value: removed_at.iso8601)
+        )
+      end
+
+      [removed_at, 0]
+    end
+  end
+
+  def upload_asset(asset)
+    file_handle = File.open(asset.full_path)
+
+    params = {
+      bucket: bucket_name,
+      key: asset.path,
+      body: file_handle,
+      acl: "public-read",
+      content_type: asset.mime_type,
+      cache_control: "public, max-age=31536000"
+    }.merge(@upload_asset_options)
+
+    put_object(params)
+  ensure
+    file_handle.close
   end
 
   def s3
     @s3 ||= Aws::S3::Client.new(@s3_client_options)
   end
 
-  def local_asset_paths
-    local_asset_collector.local_asset_paths
-  end
-
-  def local_asset_map
-    verify_no_duplicate_assets!
-
-    local_asset_paths.map do |asset|
-      [remove_fingerprint(asset), asset]
-    end.to_h
-  end
-
-  def local_logical_asset_paths
-    local_asset_paths.map { |asset| remove_fingerprint(asset) }
-  end
-
   def verify_no_duplicate_assets!
-    if local_logical_asset_paths.uniq.length != local_asset_paths.length
-      raise DuplicateAssetsError, "Duplicate precompiled assets detected. Please make sure there are no duplicate precompiled assets in the public dir."
+    if local_asset_collector.original_asset_paths.uniq.length != local_asset_collector.asset_paths.length
+      raise S3AssetDeploy::DuplicateAssetsError
     end
   end
 
@@ -84,130 +184,7 @@ class S3AssetDeploy::Manager
     )
   end
 
-  # TODO: consider reduced redundancy
-  def upload_asset(asset_path)
-    file_handle = File.open(local_asset_collector.full_file_path(asset_path))
-
-    asset = {
-      bucket: bucket_name,
-      key: asset_path,
-      body: file_handle,
-      acl: "public-read",
-      content_type: mime_type_for(asset_path).to_s,
-      cache_control: "public, max-age=31536000"
-    }
-
-    put_object(asset)
-    file_handle.close
-  end
-
-  def local_assets_to_upload
-    local_asset_paths - remote_asset_paths
-  end
-
-  def upload_assets(dry_run: false)
-    verify_no_duplicate_assets!
-
-    local_assets_to_upload.each do |asset_path|
-      next unless File.file?(local_asset_collector.full_file_path(asset_path))
-      log "Uploading #{asset_path}..."
-      upload_asset(asset_path) unless dry_run
-    end
-  end
-
-  # Cleanup old assets on S3. By default it will
-  # keep the latest version, 2 backups and any created within the past hour (version_ttl).
-  # When assets are removed completely, they are tagged with a removed_at timestamp
-  # and eventually deleted based on the removed_ttl.
-  def clean_assets(version_limit: 2, version_ttl: 3600, removed_ttl: 172800, dry_run: false)
-    verify_no_duplicate_assets!
-
-    version_ttl = version_ttl.to_i
-    removed_ttl = removed_ttl.to_i
-
-    log "Cleaning assets from #{bucket_name} S3 bucket. Dry run: #{dry_run}"
-    assets_to_delete = []
-
-    unless local_assets_to_upload.empty?
-      log "WARNING: Please upload latest asset versions to remote host before cleaning."
-      return assets_to_delete
-    end
-
-    grouped_remote_assets.each do |logical_path, versions|
-      current_fingerprinted_path = local_asset_map[logical_path]
-
-      versions.reject do |version|
-        # Remove current asset versions from the list
-        version.asset.key == current_fingerprinted_path
-      end.sort_by do |version|
-        version.asset.last_modified
-      end.reverse.each_with_index.drop_while do |version, index|
-        # If the asset has been completely removed from our set of assets
-        # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
-        # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
-        if !current_fingerprinted_path
-          obj_tagging = get_object_tagging(version.asset.key)
-          tag_set = obj_tagging.tag_set
-          removed_at_tag = tag_set.find { |t| t[:key] == "removed_at" }
-
-          if removed_at_tag
-            removed_at = Time.parse(removed_at_tag[:value])
-            removed_age = Time.now.utc - removed_at
-            log "Determining how long ago #{version.asset.key} was removed - removed on #{removed_at} (#{removed_age} seconds ago)"
-            removed_age < removed_ttl
-          else
-            log "Adding removed_at tag to #{version.asset.key}"
-
-            if !dry_run
-              put_object_tagging(
-                version.asset.key,
-                tag_set.push(key: :removed_at, value: Time.now.utc.iso8601)
-              )
-            end
-
-            true
-          end
-        else
-          # Keep if under age or within the version_limit
-          version_age = [0, Time.now - version.asset.last_modified].max
-          version_age < version_ttl || index < version_limit
-        end
-      end.each do |version, index|
-        assets_to_delete << version.asset.key
-      end
-    end
-
-    if !assets_to_delete.empty? && !dry_run
-      delete_objects(assets_to_delete)
-    end
-
-    assets_to_delete
-  end
-
-  def sync(clean = true)
-    upload_assets
-    yield if block_given?
-    clean_assets if clean
-  end
-
-  def remove_fingerprint(asset_path)
-    match_data = asset_path.match(FINGERPRINTED_ASSET_REGEX)
-
-    unless match_data
-      log "WARNING: No fingerprint found for #{asset_path}!"
-      return asset_path
-    end
-
-    "#{match_data[1]}#{match_data[3]}"
-  end
-
-  def mime_type_for(asset)
-    extension = File.extname(asset)[1..-1]
-    return "application/json" if extension == "map"
-    MIME::Types.type_for(extension).first
-  end
-
   def log(msg)
-    logger.info("AssetSyncService: #{msg}")
+    logger.info("#{self.class.name}: #{msg}")
   end
 end
