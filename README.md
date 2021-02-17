@@ -119,6 +119,20 @@ manager = S3AssetDeploy::Manager.new(
 )
 ```
 
+## Dry run
+As mentioned above, you can run operations in "dry" mode by passing `dry_run: true`.
+This will skip any write or delete operations and only perform read opeartions with log output.
+This is helpful for debugging or planning purposes.
+
+```ruby
+> manager = S3AssetDeploy::Manager("my-s3-bucket")
+> manager.deploy(dry_run: true)
+
+I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Cleaning assets from test-bucket S3 bucket. Dry run: true
+I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Determining how long ago assets/file-2-34567.jpg was removed - removed on 2021-02-15 23:12:22 UTC (172801.703677 seconds ago)
+I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Determining how long ago assets/file-3-9876666.jpg was removed - removed on 2021-02-15 23:12:24 UTC (172799.703677 seconds ago)
+```
+
 
 ## Development
 
