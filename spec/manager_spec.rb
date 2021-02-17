@@ -42,7 +42,7 @@ RSpec.describe S3AssetDeploy::Manager do
     end
   end
 
-  describe "#clean_assets" do
+  describe "#clean" do
     it "should tag untagged removed files" do
       Timecop.freeze(Time.now) do
         expect_instance_of_remote_asset_collector_to_receive_assets(
@@ -66,7 +66,7 @@ RSpec.describe S3AssetDeploy::Manager do
           array_including(key: :removed_at, value: Time.now.utc.iso8601)
         )
 
-        expect(subject.clean_assets).to match_array([])
+        expect(subject.clean).to match_array([])
       end
     end
 
@@ -91,7 +91,7 @@ RSpec.describe S3AssetDeploy::Manager do
           .with("assets/file-3-9876666.jpg")
           .and_return(OpenStruct.new(tag_set: [{ key: "removed_at", value: (Time.now - 172799).utc.iso8601 }]))
 
-        expect(subject.clean_assets(removed_ttl: 172800)).to contain_exactly("assets/file-2-34567.jpg")
+        expect(subject.clean(removed_ttl: 172800)).to contain_exactly("assets/file-2-34567.jpg")
       end
     end
 
@@ -114,7 +114,7 @@ RSpec.describe S3AssetDeploy::Manager do
         "assets/file-3-9876666.jpg"
       )
 
-      expect(subject.clean_assets(version_limit: 2)).to contain_exactly("assets/file-1-123.jpg")
+      expect(subject.clean(version_limit: 2)).to contain_exactly("assets/file-1-123.jpg")
     end
 
     it "should wait atleast 'version_ttl' seconds before deleting old versions" do
@@ -131,10 +131,10 @@ RSpec.describe S3AssetDeploy::Manager do
           "assets/file-1-987.jpg"
         )
 
-        expect(subject.clean_assets).to be_empty
+        expect(subject.clean).to be_empty
 
         Timecop.travel(Time.now + 3600)
-        expect(subject.clean_assets(version_ttl: 3600)).to contain_exactly("assets/file-1-123.jpg")
+        expect(subject.clean(version_ttl: 3600)).to contain_exactly("assets/file-1-123.jpg")
       end
     end
 
@@ -145,7 +145,7 @@ RSpec.describe S3AssetDeploy::Manager do
         "assets/file-1-987.jpg"
       )
 
-      expect { subject.clean_assets }.to raise_error(S3AssetDeploy::DuplicateAssetsError)
+      expect { subject.clean }.to raise_error(S3AssetDeploy::DuplicateAssetsError)
     end
   end
 end
