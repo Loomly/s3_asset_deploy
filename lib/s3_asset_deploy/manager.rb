@@ -4,6 +4,7 @@ require "logger"
 require "ostruct"
 require "time"
 require "aws-sdk-s3"
+require "s3_asset_deploy/errors"
 require "s3_asset_deploy/rails_local_asset_collector"
 require "s3_asset_deploy/remote_asset_collector"
 
@@ -36,7 +37,7 @@ class S3AssetDeploy::Manager
 
   def verify_no_duplicate_assets!
     if local_asset_collector.original_asset_paths.uniq.length != local_asset_collector.asset_paths.length
-      raise DuplicateAssetsError, "Duplicate precompiled assets detected. Please make sure there are no duplicate precompiled assets in the public dir."
+      raise S3AssetDeploy::DuplicateAssetsError
     end
   end
 

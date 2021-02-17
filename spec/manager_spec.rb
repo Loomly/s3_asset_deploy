@@ -145,7 +145,7 @@ RSpec.describe S3AssetDeploy::Manager do
         "assets/file-1-987.jpg"
       )
 
-      expect { subject.clean_assets }.to raise_error(described_class::DuplicateAssetsError)
+      expect { subject.clean_assets }.to raise_error(S3AssetDeploy::DuplicateAssetsError)
     end
   end
 end
