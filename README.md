@@ -100,7 +100,24 @@ manager.clean
 `S3AssetDeploy::Manager#clean` also accepts `version_limit`, `version_ttl`, and `removed_ttl` just like `S3AssetDeploy::Manager#deploy`.
 
 
-### Customizing local asset collection
+## Customizing local asset collection
+By default, `S3AssetDeploy::Manager` will use [`S3AssetDeploy::RailsLocalAssetCollector`](https://github.com/Loomly/s3_asset_deploy/blob/master/lib/s3_asset_deploy/rails_local_asset_collector.rb) to collect locally compiled assets. This will use the `Sprockets::Manifest` and `Webpacker` config (if `Webpacker` is installed)to locate the compiled assets. `S3AssetDeploy::RailsLocalAssetCollector` inherits from the [`S3AssetDeploy::LocalAssetCollector`](https://github.com/Loomly/s3_asset_deploy/blob/master/lib/s3_asset_deploy/local_asset_collector.rb) base class. You can completely customize how your local assets are collected for deploys by creating your own class that inherits from `S3AssetDeploy::LocalAssetCollector` and passing it into the manager. You'll want override `S3AssetDeploy::LocalAssetCollector#assets` in your custom collector such that it returns an array of `S3AssetDeploy::LocalAsset` instances. Here's a basic example:
+
+
+```ruby
+class MyCustomLocalAssetCollector < S3AssetDeploy::LocalAssetCollector
+  def assets
+    # Override this method to return an array of your locally compiled assets
+    # as instances of S3AssetDeploy::LocalAsset
+    [S3AssetDeploy::LocalAsset.new("path-to-my-asset.jpg")]
+  end
+end
+
+manager = S3AssetDeploy::Manager.new(
+  "mybucket",
+  local_asset_collector: MyCustomLocalAssetCollector.new
+)
+```
 
 
 ## Development
