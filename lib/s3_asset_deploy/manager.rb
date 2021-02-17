@@ -110,15 +110,18 @@ class S3AssetDeploy::Manager
     remote_asset_collector.grouped_assets.each do |original_path, versions|
       current_asset = local_asset_map[original_path]
 
-      versions.reject do |version|
-        # Remove current asset versions from the list
+      # Remove current asset version from the list
+      versions_to_delete = versions.reject do |version|
         version.path == current_asset.path if current_asset
-      end.sort_by do |version|
-        version.last_modified
-      end.reverse.each_with_index.drop_while do |version, index|
-        # If the asset has been completely removed from our set of assets
-        # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
-        # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
+      end
+
+      # Sort remaining versions from newest to oldest
+      versions_to_delete = versions_to_delete.sort_by(&:last_modified).reverse
+
+      # If the asset has been completely removed from our set of locally compiled assets
+      # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
+      # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
+      versions_to_delete = versions_to_delete.each_with_index.drop_while do |version, index|
         if !current_asset
           obj_tagging = get_object_tagging(version.path)
           tag_set = obj_tagging.tag_set
@@ -146,9 +149,9 @@ class S3AssetDeploy::Manager
           version_age = [0, Time.now - version.last_modified].max
           version_age < version_ttl || index < version_limit
         end
-      end.each do |version, index|
-        s3_keys_to_delete << version.path
-      end
+      end.map(&:first)
+
+      s3_keys_to_delete += versions_to_delete.map(&:path)
     end
 
     if !s3_keys_to_delete.empty? && !dry_run
