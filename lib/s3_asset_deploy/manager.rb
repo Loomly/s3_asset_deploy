@@ -10,14 +10,15 @@ require "s3_asset_deploy/remote_asset_collector"
 class S3AssetDeploy::Manager
   attr_reader :bucket_name, :logger, :local_asset_collector, :remote_asset_collector
 
-  def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil, upload_options: {})
+  def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil, upload_options: {}, remove_fingerprint: nil)
     @bucket_name = bucket_name.to_s
     @logger = logger || Logger.new(STDOUT)
 
-    @local_asset_collector = local_asset_collector || S3AssetDeploy::RailsLocalAssetCollector.new
+    @local_asset_collector = local_asset_collector || S3AssetDeploy::RailsLocalAssetCollector.new(remove_fingerprint: remove_fingerprint)
     @remote_asset_collector = S3AssetDeploy::RemoteAssetCollector.new(
       bucket_name,
-      s3_client_options: s3_client_options
+      s3_client_options: s3_client_options,
+      remove_fingerprint: remove_fingerprint
     )
 
     @s3_client_options = {

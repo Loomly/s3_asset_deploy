@@ -6,8 +6,9 @@ require "s3_asset_deploy/remote_asset"
 class S3AssetDeploy::RemoteAssetCollector
   attr_reader :bucket_name
 
-  def initialize(bucket_name, s3_client_options: {})
+  def initialize(bucket_name, s3_client_options: {}, remove_fingerprint: nil)
     @bucket_name = bucket_name
+    @remove_fingerprint = remove_fingerprint
     @s3_client_options = {
       region: "us-east-1",
       logger: @logger
@@ -20,7 +21,10 @@ class S3AssetDeploy::RemoteAssetCollector
 
   def assets
     s3.list_objects_v2(bucket: bucket_name).each_with_object([]) do |response, array|
-      array.concat(response.contents.map { |obj| S3AssetDeploy::RemoteAsset.new(obj) })
+      remote_assets = response.contents.map do |obj|
+        S3AssetDeploy::RemoteAsset.new(obj, remove_fingerprint: @remove_fingerprint)
+      end
+      array.concat(remote_assets)
     end
   end
 
