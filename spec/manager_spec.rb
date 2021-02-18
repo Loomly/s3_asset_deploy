@@ -24,7 +24,7 @@ RSpec.describe S3AssetDeploy::Manager do
   before { allow_any_instance_of(described_class).to receive(:s3) { s3_client_instance } }
 
   describe "#local_assets_to_upload" do
-    it "should only return assets not on remote" do
+    it "only returns assets not on remote" do
       expect_instance_of_remote_asset_collector_to_receive_assets(
         1,
         ["assets/file-1-12345.jpg", "2018-05-01 15:38:31 UTC"]
@@ -43,7 +43,7 @@ RSpec.describe S3AssetDeploy::Manager do
   end
 
   describe "#clean" do
-    it "should tag untagged removed files" do
+    it "tags untagged removed files" do
       Timecop.freeze(Time.now) do
         expect_instance_of_remote_asset_collector_to_receive_assets(
           2,
@@ -70,7 +70,7 @@ RSpec.describe S3AssetDeploy::Manager do
       end
     end
 
-    it "should delete remote assets only after 'removed_ttl'" do
+    it "deletes remote assets only after 'removed_ttl'" do
       Timecop.freeze(Time.now) do
         expect_instance_of_remote_asset_collector_to_receive_assets(
           2,
@@ -95,7 +95,7 @@ RSpec.describe S3AssetDeploy::Manager do
       end
     end
 
-    it "should keep old versions up to 'version_limit'" do
+    it "keeps old versions up to 'version_limit'" do
       expect_instance_of_remote_asset_collector_to_receive_assets(
         2,
         ["assets/file-1-123.jpg", "2018-05-01 15:38:31 UTC"],
@@ -117,7 +117,7 @@ RSpec.describe S3AssetDeploy::Manager do
       expect(subject.clean(version_limit: 2)).to contain_exactly("assets/file-1-123.jpg")
     end
 
-    it "should wait atleast 'version_ttl' seconds before deleting old versions" do
+    it "waits atleast 'version_ttl' seconds before deleting old versions" do
       Timecop.freeze(Time.now) do
         expect_instance_of_remote_asset_collector_to_receive_assets(
           4,
@@ -138,7 +138,7 @@ RSpec.describe S3AssetDeploy::Manager do
       end
     end
 
-    it "should raise DuplicateAssetsError if duplicate local assets" do
+    it "raises DuplicateAssetsError if duplicate local assets" do
       expect_instance_of_local_asset_collector_to_receive_assets(
         2,
         "assets/file-1-987.jpg",
