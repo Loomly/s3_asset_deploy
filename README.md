@@ -2,7 +2,7 @@
 
 During rolling deploys to our web instances, this is what we use at
 [Loomly](https://www.loomly.com) to safely deploy our web assets to S3 to be served via Cloudfront.
-This gem is designed upload and clean unneeded assets from S3 in a safe manner such that older
+This gem is designed to upload and clean unneeded assets from S3 in a safe manner such that older
 versions or recently removed assets are kept on S3 during the rolling deploy process.
 It also maintains a version limit and TTL (time-to-live) on assets to avoid deleting
 recent and outdated versions (up to a limit) or those that have been recently removed.
