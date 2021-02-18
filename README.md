@@ -53,12 +53,13 @@ end
 Since it's yielding to the block after uploading, but before cleaning, the block is an ideal place to perform a deploy, especially if it's a rolling deploy across multiple servers. If you want to perform an upload or a clean without using `#deploy`, you can call `#upload` or `#clean` directly. For more configuration options, see below.
 
 ### Initializing [`S3AssetDeploy::Manager`](https://github.com/Loomly/s3_asset_deploy/blob/main/lib/s3_asset_deploy/manager.rb)
-You'll need to initialize `S3AssetDeploy::Manager` with an S3 bucket name and optionally:
+You'll need to initialize `S3AssetDeploy::Manager` with an S3 bucket name and **optionally**:
 
 - **s3_client_options** (Hash) -> A hash that is passed directly to [`Aws::S3::Client#initialize`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#initialize-instance_method) to configure the S3 client. By default the region is set to `us-east-1`.
 - **logger** (Logger) -> A custom logger. By default things are logged to `STDOUT`.
 - **local_asset_collector** (S3AssetDeploy::LocalAssetCollector) -> A custom instance of `S3AssetDeploy::LocalAssetCollector`. This allows you to customize how locally compiled assets are collected.
 - **upload_options** (Hash) -> A hash consisting of options that are passed directly to [`Aws::S3::Client#put_object`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#put_object-instance_method) when each asset is uploaded. By default `acl` is set to `public-read` and `cache_control` is set to `public, max-age=31536000`.
+- **remove_fingerprint** (Lambda) -> Lambda for overriding how fingerprints are removed from asset paths. Fingerprints need to be removed during the cleaning process in order to group versions of the same file. If no Lambda is provided, [`S3AssetDeploy::AssetHelper.remove_fingerprint`](https://github.com/Loomly/s3_asset_deploy/blob/main/lib/s3_asset_deploy/asset_helper.rb#L8) is used by default.
 
 Here's an example:
 
@@ -66,7 +67,8 @@ Here's an example:
 manager = S3AssetDeploy::Manager.new(
   "mybucket",
   s3_client_options: { region: "us-west-1", profile: "my-aws-profile" },
-  logger: Logger.new(STDOUT)
+  logger: Logger.new(STDOUT),
+  remove_fingerprint: ->(path) { path.gsub("-myfingerprint", "") }
 )
 ```
 
