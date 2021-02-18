@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 class S3AssetDeploy::LocalAssetCollector
+  def initialize(remove_fingerprint: nil)
+    @remove_fingerprint = remove_fingerprint
+  end
+
   def assets
     []
   end

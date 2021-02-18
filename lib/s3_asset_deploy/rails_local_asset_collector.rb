@@ -9,8 +9,16 @@ class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollect
   end
 
   def assets_from_manifest
-    manifest = ::Sprockets::Manifest.new(::ActionView::Base.assets_manifest.environment, ::ActionView::Base.assets_manifest.dir)
-    manifest.assets.values.map { |f| S3AssetDeploy::LocalAsset.new(File.join(assets_prefix, f)) }
+    manifest = ::Sprockets::Manifest.new(
+      ::ActionView::Base.assets_manifest.environment,
+      ::ActionView::Base.assets_manifest.dir
+    )
+    manifest.assets.values.map do |f|
+      S3AssetDeploy::LocalAsset.new(
+        File.join(assets_prefix, f),
+        remove_fingerprint: @remove_fingerprint
+      )
+    end
   end
 
   def pack_assets
@@ -22,7 +30,7 @@ class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollect
       Dir[File.join(packs_dir, "/**/**")]
         .select { |path| File.file?(path) }
         .reject { |path| path.ends_with?(".gz") || path.ends_with?("manifest.json") }
-        .map { |path| S3AssetDeploy::LocalAsset.new(path) }
+        .map { |path| S3AssetDeploy::LocalAsset.new(path, remove_fingerprint: @remove_fingerprint) }
     end
   end
 
