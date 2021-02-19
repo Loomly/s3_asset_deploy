@@ -7,22 +7,22 @@ versions or recently removed assets are kept on S3 during the rolling deploy pro
 It also maintains a version limit and TTL (time-to-live) on assets to avoid deleting
 recent and outdated versions (up to a limit) or those that have been recently removed.
 
-## Why?
+## Background
 
-At the very beginning, we were serving our assets from our webservers. This isn't ideal for many reasons but one big one is that this is problematic during rolling deploys where you temporarily have some web servers with new assets and some web servers with old assets during the rolling deploy process. When round-robbining requests to instances behind a load balancer this can result in requests for assets hitting web servers that don't have the asset being requested (either the new or the old depending on what web server and what's being requested). We then moved our assets to S3 and began using [asset_sync](https://github.com/AssetSync/asset_sync). We had a lot of problems with `asset_sync`, some of which being:
+At the very beginning, we were serving our assets from our webservers. This isn't ideal for many reasons, but one big one is that it's problematic during rolling deploys where you temporarily have some web servers with new assets and some with old assets during the deploy. When round-robbining requests to instances behind a load balancer, this can result in requests for assets hitting web servers that don't have the asset being requested (either the new or the old depending on what web server and what's being requested). One way to fix this problem is to serve your assets from a CDN and keep both old and new versions of assets available on the CDN during the deploy process. So we decided to serve our assets from Cloudfront, backed by S3. In order to upload our assets to S3 during our deploy process, we started using [`asset_sync`](https://github.com/AssetSync/asset_sync). `asset_sync` served us well for quite some time, but our needs started to diverge a bit. Namely, `asset_sync`:
 
-- It depended on the [fog](https://github.com/fog/fog) gem which was an extra dependency we really didn't need especially since we already had the `aws` gem as a dependency.
-- It seemed overly complex, especially around configuration. This likely stems from trying to support so many different storage options and abstractions/configuration options needed for that.
-- It didn't have a way to remove outdated or old assets from storage (in this case S3).
+- Depends on the [`fog`](https://github.com/fog/fog) gem which was an extra dependency we didn't need since we already had the [`aws-sdk-s3`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3.html) gem as a dependency.
+- Uses a global configuration, which made it difficult to deploy to different S3 buckets depending on the environment (development, staging, production, etc.).
+- Didn't have a way to remove or retire outdated or old assets from storage (in this case S3).
 
-As a first pass, we hacked and monkey patched `asset_sync` to work how we wanted and this worked for a while but was overly complicated for what we needed. We then took inspiration from that and wrote our own little library inside our Rails app to work just how we needed. We figured this could be useful to others, so we then moved it to an open source gem. While Rails is a "first-class citizen", this gem can be used with other frameworks by writing your own `S3AssetDeploy::LocalAssetCollector`. See the `Usage` section below for more details.
+We took inspiration from `asset_sync` and ended up writing our own library inside our Rails app. We figured this could be useful to others, so we then moved it to an open source gem. While Rails is a "first-class citizen", this gem can be used with other frameworks by writing your own `S3AssetDeploy::LocalAssetCollector`. See the `Usage` section below for more details.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 's3_asset_deploy'
+gem "s3_asset_deploy"
 ```
 
 And then execute:
@@ -46,7 +46,7 @@ end
 ```
 
 `S3AssetDeploy::Manager#deploy` will perform the following steps:
-- Upload your assets the S3 bucket you specify
+- Upload your assets to the S3 bucket you specify
 - Yield to the block
 - Clean old versions assets or removed assets
 
