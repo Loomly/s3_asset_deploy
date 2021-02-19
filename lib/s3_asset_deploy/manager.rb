@@ -10,6 +10,8 @@ require "s3_asset_deploy/remote_asset_collector"
 class S3AssetDeploy::Manager
   attr_reader :bucket_name, :logger, :local_asset_collector, :remote_asset_collector
 
+  REMOVAL_MANIFEST_KEY = "s3-asset-deploy-removal-manifest.json".freeze
+
   def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil, upload_options: {}, remove_fingerprint: nil)
     @bucket_name = bucket_name.to_s
     @logger = logger || Logger.new(STDOUT)
@@ -26,6 +28,12 @@ class S3AssetDeploy::Manager
       logger: @logger
     }.merge(s3_client_options)
     @upload_options = upload_options
+
+    @removal_manifest = S3AssetDeploy::RemovalManifest.new(
+      REMOVAL_MANIFEST_KEY,
+      bucket_name,
+      s3_client_options: @s3_client_options
+    )
   end
 
   def local_assets_to_upload
@@ -61,6 +69,7 @@ class S3AssetDeploy::Manager
       return s3_keys_to_delete
     end
 
+    @removal_manifest.load
     local_asset_map = local_asset_collector.asset_map
     remote_asset_collector.grouped_assets.each do |original_path, versions|
       current_asset = local_asset_map[original_path]
@@ -74,12 +83,22 @@ class S3AssetDeploy::Manager
       versions_to_delete = versions_to_delete.sort_by(&:last_modified).reverse
 
       # If the asset has been completely removed from our set of locally compiled assets
-      # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
+      # then use removed_at timestamp from manifest and removed_ttl to determine if it
+      # should be deleted from remote host.
       # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
       versions_to_delete = versions_to_delete.each_with_index.drop_while do |version, index|
         if !current_asset
-          removed_at, removed_age = find_or_create_removed_at_tag(version, dry_run: dry_run)
-          removed_age == 0 || removed_age < removed_ttl
+          if (removed_at = @removal_manifest[version.path])
+            removed_at = Time.parse(removed_at)
+            removed_age = Time.now.utc - removed_at
+            drop = removed_age < removed_ttl
+            @removal_manifest.delete(version.path) unless drop
+            drop
+          else
+            removed_at = Time.now.utc
+            @removal_manifest[version.path] = removed_at.iso8601
+            true
+          end
         else
           # Keep if under age or within the version_limit
           version_age = [0, Time.now - version.last_modified].max
@@ -92,6 +111,7 @@ class S3AssetDeploy::Manager
 
     if !s3_keys_to_delete.empty? && !dry_run
       delete_objects(s3_keys_to_delete)
+      @removal_manifest.save
     end
 
     s3_keys_to_delete
