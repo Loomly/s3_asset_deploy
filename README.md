@@ -7,7 +7,7 @@ versions or recently removed assets are kept on S3 during the rolling deploy pro
 It also maintains a version limit and TTL (time-to-live) on assets to avoid deleting
 recent and outdated versions (up to a limit) or those that have been recently removed.
 
-## Why?
+## Background
 
 At the very beginning, we were serving our assets from our webservers. This isn't ideal for many reasons but one big one is that this is problematic during rolling deploys where you temporarily have some web servers with new assets and some web servers with old assets during the rolling deploy process. When round-robbining requests to instances behind a load balancer this can result in requests for assets hitting web servers that don't have the asset being requested (either the new or the old depending on what web server and what's being requested). We then moved our assets to S3 and began using [asset_sync](https://github.com/AssetSync/asset_sync). We had a lot of problems with `asset_sync`, some of which being:
 
