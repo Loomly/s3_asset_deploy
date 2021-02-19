@@ -11,7 +11,7 @@ recent and outdated versions (up to a limit) or those that have been recently re
 
 At the very beginning, we were serving our assets from our webservers. This isn't ideal for many reasons, but one big one is that it's problematic during rolling deploys where you temporarily have some web servers with new assets and some with old assets during the deploy. When round-robbining requests to instances behind a load balancer, this can result in requests for assets hitting web servers that don't have the asset being requested (either the new or the old depending on what web server and what's being requested). One way to fix this problem is to serve your assets from a CDN and keep both old and new versions of assets available on the CDN during the deploy process. So we decided to serve our assets from Cloudfront, backed by S3. In order to upload our assets to S3 during our deploy process, we started using [`asset_sync`](https://github.com/AssetSync/asset_sync). `asset_sync` served us well for quite some time, but our needs started to diverge a bit. Namely:
 
-- It depends on the [fog](https://github.com/fog/fog) gem which was an extra dependency we didn't need since we already had the `aws-sdk-s3` gem as a dependency.
+- It depends on the [`fog`](https://github.com/fog/fog) gem which was an extra dependency we didn't need since we already had the [`aws-sdk-s3`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3.html) gem as a dependency.
 - It uses a global configuration, which made it difficult to deploy to different S3 buckets depending on the environment (development, staging, production, etc.).
 - It didn't have a way to remove or retire outdated or old assets from storage (in this case S3).
 
