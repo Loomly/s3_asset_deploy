@@ -46,7 +46,7 @@ end
 ```
 
 `S3AssetDeploy::Manager#deploy` will perform the following steps:
-- Upload your assets the S3 bucket you specify
+- Upload your assets to the S3 bucket you specify
 - Yield to the block
 - Clean old versions assets or removed assets
 
