@@ -8,3 +8,9 @@ class S3AssetDeploy::DuplicateAssetsError < S3AssetDeploy::Error
     super
   end
 end
+
+class S3AssetDeploy::ManifestUnloadedError < S3AssetDeploy::Error
+  def initialize(msg = "Manifest hasn't been loaded")
+    super
+  end
+end
