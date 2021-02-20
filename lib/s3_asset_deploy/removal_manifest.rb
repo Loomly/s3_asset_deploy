@@ -19,6 +19,7 @@ class S3AssetDeploy::RemovalManifest
   end
 
   def load
+    return true if loaded?
     resp = s3.get_object({
       bucket: bucket_name,
       key: path
