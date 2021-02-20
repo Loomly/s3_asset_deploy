@@ -72,7 +72,7 @@ class S3AssetDeploy::Manager
     version_ttl = version_ttl.to_i
     removed_ttl = removed_ttl.to_i
 
-    log "Cleaning assets from #{bucket_name} S3 bucket. Dry run: #{dry_run}"
+    log "Cleaning assets from #{bucket_name} S3 bucket. Dry run: #{dry_run}."
     s3_keys_to_delete = []
 
     unless local_assets_to_upload.empty?
@@ -102,12 +102,14 @@ class S3AssetDeploy::Manager
           if (removed_at = @removal_manifest[version.path])
             removed_at = Time.parse(removed_at)
             removed_age = Time.now.utc - removed_at
+            log "Determining how long ago #{version.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)."
             drop = removed_age < removed_ttl
-            @removal_manifest.delete(version.path) unless drop
+            @removal_manifest.delete(version.path) unless drop || dry_run
             drop
           else
+            log "Adding #{version.path} to removal manifest."
             removed_at = Time.now.utc
-            @removal_manifest[version.path] = removed_at.iso8601
+            @removal_manifest[version.path] = removed_at.iso8601 unless dry_run
             true
           end
         else
@@ -120,7 +122,7 @@ class S3AssetDeploy::Manager
       s3_keys_to_delete += versions_to_delete.map(&:path)
     end
 
-    if !s3_keys_to_delete.empty? && !dry_run
+    unless dry_run
       delete_objects(s3_keys_to_delete)
       @removal_manifest.save
     end
@@ -159,11 +161,11 @@ class S3AssetDeploy::Manager
     if removed_at_tag
       removed_at = Time.parse(removed_at_tag[:value])
       removed_age = Time.now.utc - removed_at
-      log "Determining how long ago #{asset.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)"
+      log "Determining how long ago #{asset.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)."
 
       [removed_at, removed_age]
     else
-      log "Adding removed_at tag to #{asset.path}"
+      log "Adding removed_at tag to #{asset.path}."
       removed_at = Time.now.utc
 
       if !dry_run
@@ -217,6 +219,7 @@ class S3AssetDeploy::Manager
   end
 
   def delete_objects(keys = [])
+    return if keys.empty?
     s3.delete_objects(
       bucket: bucket_name,
       delete: { objects: keys.map { |key| { key: key }} }
