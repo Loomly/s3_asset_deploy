@@ -153,32 +153,6 @@ class S3AssetDeploy::Manager
 
   protected
 
-  def find_or_create_removed_at_tag(asset, dry_run: false)
-    obj_tagging = get_object_tagging(asset.path)
-    tag_set = obj_tagging.tag_set
-    removed_at_tag = tag_set.find { |t| t[:key] == "removed_at" }
-
-    if removed_at_tag
-      removed_at = Time.parse(removed_at_tag[:value])
-      removed_age = Time.now.utc - removed_at
-      log "Determining how long ago #{asset.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)."
-
-      [removed_at, removed_age]
-    else
-      log "Adding removed_at tag to #{asset.path}."
-      removed_at = Time.now.utc
-
-      if !dry_run
-        put_object_tagging(
-          asset.path,
-          tag_set.push(key: :removed_at, value: removed_at.iso8601)
-        )
-      end
-
-      [removed_at, 0]
-    end
-  end
-
   def upload_asset(asset)
     file_handle = File.open(asset.full_path)
 
@@ -208,14 +182,6 @@ class S3AssetDeploy::Manager
 
   def put_object(object)
     s3.put_object(object)
-  end
-
-  def get_object_tagging(key)
-    s3.get_object_tagging(bucket: bucket_name, key: key)
-  end
-
-  def put_object_tagging(key, tag_set)
-    s3.put_object_tagging(bucket: bucket_name, key: key, tagging: { tag_set: tag_set })
   end
 
   def delete_objects(keys = [])
