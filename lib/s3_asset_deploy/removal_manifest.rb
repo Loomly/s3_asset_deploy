@@ -1,13 +1,13 @@
 require "json"
-require "s3_asset_deploy/errors"
 
 class S3AssetDeploy::RemovalManifest
-  attr_reader :key, :bucket_name, :manifest
+  attr_reader :path, :bucket_name
 
-  def initialize(key, bucket_name, s3_client_options: {})
-    @key = key
+  def initialize(path, bucket_name, s3_client_options: {})
+    @path = path
     @bucket_name = bucket_name
     @loaded = false
+    @manifest = {}
     @s3_client_options = {
       region: "us-east-1",
       logger: @logger
@@ -21,7 +21,7 @@ class S3AssetDeploy::RemovalManifest
   def load
     resp = s3.get_object({
       bucket: bucket_name,
-      key: key
+      key: path
     })
 
     @manifest = JSON.parse(resp.body.read)
@@ -38,24 +38,27 @@ class S3AssetDeploy::RemovalManifest
   def save
     s3.put_object({
       bucket: bucket_name,
-      key: key,
+      key: path,
       body: @manifest.to_json,
       acl: "private",
       content_type: "application/json"
     })
   end
 
-  def delete(manifest_key)
-    @manifest.delete(manifest_key)
+  def keys
+    @manifest.keys
   end
 
-  def [](manifest_key)
-    raise S3AssetDeploy::ManifestUnloadedError unless loaded?
-    @manifest[manifest_key]
+  def delete(key)
+    @manifest.delete(key)
   end
 
-  def []=(manifest_key, manifest_value)
-    @manifest[manifest_key] = manifest_value
+  def [](key)
+    @manifest[key]
+  end
+
+  def []=(key, value)
+    @manifest[key] = value
   end
 
   def to_s
@@ -63,6 +66,6 @@ class S3AssetDeploy::RemovalManifest
   end
 
   def inspect
-    "#<#{self.class.name}:#{"0x0000%x" % (object_id << 1)} @key='#{key}' @bucket_name='#{bucket_name}'>"
+    "#<#{self.class.name}:#{"0x0000%x" % (object_id << 1)} @path='#{path}' @bucket_name='#{bucket_name}'>"
   end
 end
