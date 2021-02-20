@@ -44,11 +44,22 @@ class S3AssetDeploy::Manager
   def upload(dry_run: false)
     verify_no_duplicate_assets!
 
-    local_assets_to_upload.each do |asset|
+    @removal_manifest.load
+    assets_to_upload = local_assets_to_upload
+
+    (@removal_manifest & assets_to_upload.map(&:path)).each do |path|
+      log "#{path} has been re-added. Deleting from removal manifest."
+      @removal_manifest.delete(path) unless dry_run
+    end
+
+    assets_to_upload.each do |asset|
       next unless File.file?(asset.full_path)
       log "Uploading #{asset.path}..."
       upload_asset(asset) unless dry_run
     end
+
+    @removal_manifest.save unless dry_run
+    true
   end
 
   # Cleanup old assets on S3. By default it will
