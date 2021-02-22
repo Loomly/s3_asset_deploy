@@ -28,8 +28,10 @@ class S3AssetDeploy::Manager
       logger: @logger
     }.merge(s3_client_options)
     @upload_options = upload_options
+  end
 
-    @removal_manifest = S3AssetDeploy::RemovalManifest.new(
+  def removal_manifest
+    @removal_manifest ||= S3AssetDeploy::RemovalManifest.new(
       REMOVAL_MANIFEST_KEY,
       bucket_name,
       s3_client_options: @s3_client_options
@@ -44,12 +46,12 @@ class S3AssetDeploy::Manager
   def upload(dry_run: false)
     verify_no_duplicate_assets!
 
-    @removal_manifest.load
+    removal_manifest.load
     assets_to_upload = local_assets_to_upload
 
-    (@removal_manifest & assets_to_upload.map(&:path)).each do |path|
+    (removal_manifest & assets_to_upload.map(&:path)).each do |path|
       log "#{path} has been re-added. Deleting from removal manifest."
-      @removal_manifest.delete(path) unless dry_run
+      removal_manifest.delete(path) unless dry_run
     end
 
     assets_to_upload.each do |asset|
@@ -58,7 +60,7 @@ class S3AssetDeploy::Manager
       upload_asset(asset) unless dry_run
     end
 
-    @removal_manifest.save unless dry_run
+    removal_manifest.save unless dry_run
     true
   end
 
@@ -80,7 +82,7 @@ class S3AssetDeploy::Manager
       return s3_keys_to_delete
     end
 
-    @removal_manifest.load
+    removal_manifest.load
     local_asset_map = local_asset_collector.asset_map
     remote_asset_collector.grouped_assets.each do |original_path, versions|
       current_asset = local_asset_map[original_path]
@@ -99,17 +101,17 @@ class S3AssetDeploy::Manager
       # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
       versions_to_delete = versions_to_delete.each_with_index.drop_while do |version, index|
         if !current_asset
-          if (removed_at = @removal_manifest[version.path])
+          if (removed_at = removal_manifest[version.path])
             removed_at = Time.parse(removed_at)
             removed_age = Time.now.utc - removed_at
             log "Determining how long ago #{version.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)."
             drop = removed_age < removed_ttl
-            @removal_manifest.delete(version.path) unless drop || dry_run
+            removal_manifest.delete(version.path) unless drop || dry_run
             drop
           else
             log "Adding #{version.path} to removal manifest."
             removed_at = Time.now.utc
-            @removal_manifest[version.path] = removed_at.iso8601 unless dry_run
+            removal_manifest[version.path] = removed_at.iso8601 unless dry_run
             true
           end
         else
@@ -124,7 +126,7 @@ class S3AssetDeploy::Manager
 
     unless dry_run
       delete_objects(s3_keys_to_delete)
-      @removal_manifest.save
+      removal_manifest.save
     end
 
     s3_keys_to_delete
