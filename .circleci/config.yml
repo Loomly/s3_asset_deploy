@@ -10,8 +10,8 @@ jobs:
     steps:
       - checkout
       - run:
-        name: Install bundler
-        command: gem install bundler:2.2.7
+          name: Install bundler
+          command: gem install bundler:2.2.7
       - run:
           name: Which bundler?
           command: bundle -v
