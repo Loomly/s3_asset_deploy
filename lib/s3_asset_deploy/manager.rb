@@ -47,19 +47,21 @@ class S3AssetDeploy::Manager
     removal_manifest.load
     assets_to_upload = local_assets_to_upload
 
-    (removal_manifest & assets_to_upload.map(&:path)).each do |path|
+    (removal_manifest.keys & local_asset_collector.asset_paths).each do |path|
       log "#{path} has been re-added. Deleting from removal manifest."
       removal_manifest.delete(path) unless dry_run
     end
 
+    uploaded_assets = []
     assets_to_upload.each do |asset|
       next unless File.file?(asset.full_path)
       log "Uploading #{asset.path}..."
       upload_asset(asset) unless dry_run
+      uploaded_assets << asset.path
     end
 
     removal_manifest.save unless dry_run
-    true
+    uploaded_assets
   end
 
   # Cleanup old assets on S3. By default it will
