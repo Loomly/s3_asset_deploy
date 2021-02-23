@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  ruby: circleci/ruby@0.1.2
+  ruby: circleci/ruby@1.1.2
 
 jobs:
   build:
@@ -13,4 +13,4 @@ jobs:
           name: Which bundler?
           command: bundle -v
       - ruby/bundle-install
-      - bundle exec rspec
+      - ruby/rspec-test
