@@ -55,7 +55,7 @@ GEM
     timecop (0.9.2)
 
 PLATFORMS
-  x86_64-darwin-18
+  ruby
 
 DEPENDENCIES
   pry (~> 0.13)
