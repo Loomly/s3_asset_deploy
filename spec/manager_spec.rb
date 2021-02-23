@@ -55,6 +55,41 @@ RSpec.describe S3AssetDeploy::Manager do
     end
   end
 
+  describe "#upload" do
+    before { allow(File).to receive(:file?) { true } }
+    before { allow_any_instance_of(S3AssetDeploy::LocalAsset).to receive(:public_path) { "" } }
+
+    context "with removed files in removal manifest" do
+      let(:removal_manifest_s3_client_instance) do
+        removal_manifest_s3_client.new do
+          {
+            "assets/file-2-34567.jpg" => (Time.now - 172801).utc.iso8601,
+            "assets/file-3-9876666.jpg" => (Time.now - 172799).utc.iso8601
+          }
+        end
+      end
+
+      it "removes re-added assets from removal manifest" do
+        expect_instance_of_remote_asset_collector_to_receive_assets(
+          1,
+          ["assets/file-2-34567.jpg", "2018-05-01 15:38:31 UTC"],
+          ["assets/file-3-9876666.jpg", "2018-05-01 15:38:31 UTC"]
+        )
+
+        expect_instance_of_local_asset_collector_to_receive_assets(
+          4,
+          "assets/file-1-12345.jpg",
+          "assets/file-3-9876666.jpg"
+        )
+
+        expect(subject.removal_manifest).to receive(:delete).with("assets/file-3-9876666.jpg")
+        expect(subject.removal_manifest).to receive(:save)
+        expect(subject).to receive(:upload_asset).with(S3AssetDeploy::LocalAsset.new("assets/file-1-12345.jpg"))
+        expect(subject.upload).to contain_exactly("assets/file-1-12345.jpg")
+      end
+    end
+  end
+
   describe "#clean" do
     it "adds removed files to removal manifest" do
       Timecop.freeze(Time.now) do
