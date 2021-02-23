@@ -140,7 +140,7 @@ I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Determ
 ```
 
 ## AWS IAM Permissions
-`S3AsetDeploy` requires the following AWS IAM permissions to work:
+`S3AsetDeploy` requires the following AWS IAM permissions:
 
 ```json
 "Statement": [
