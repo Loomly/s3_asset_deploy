@@ -20,12 +20,7 @@ class S3AssetDeploy::RemovalManifest
 
   def load
     return true if loaded?
-    resp = s3.get_object({
-      bucket: bucket_name,
-      key: path
-    })
-
-    @manifest = JSON.parse(resp.body.read)
+    @manifest = fetch_manifest
     @loaded = true
   rescue Aws::S3::Errors::NoSuchKey
     @manifest = {}
@@ -68,5 +63,16 @@ class S3AssetDeploy::RemovalManifest
 
   def inspect
     "#<#{self.class.name}:#{"0x0000%x" % (object_id << 1)} @path='#{path}' @bucket_name='#{bucket_name}'>"
+  end
+
+  private
+
+  def fetch_manifest
+    resp = s3.get_object({
+      bucket: bucket_name,
+      key: path
+    })
+
+    JSON.parse(resp.body.read)
   end
 end
