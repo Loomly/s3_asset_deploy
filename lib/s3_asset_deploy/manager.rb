@@ -61,6 +61,7 @@ class S3AssetDeploy::Manager
     end
 
     removal_manifest.save unless dry_run
+    remote_asset_collector.clear_cache
     uploaded_assets
   end
 
@@ -130,6 +131,7 @@ class S3AssetDeploy::Manager
       removal_manifest.save
     end
 
+    remote_asset_collector.clear_cache
     s3_keys_to_delete
   end
 
