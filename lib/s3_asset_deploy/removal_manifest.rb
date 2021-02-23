@@ -33,6 +33,7 @@ class S3AssetDeploy::RemovalManifest
   end
 
   def save
+    return unless loaded?
     s3.put_object({
       bucket: bucket_name,
       key: PATH,
@@ -47,6 +48,7 @@ class S3AssetDeploy::RemovalManifest
   end
 
   def delete(key)
+    return unless loaded?
     @manifest.delete(key)
   end
 
@@ -55,7 +57,12 @@ class S3AssetDeploy::RemovalManifest
   end
 
   def []=(key, value)
+    return unless loaded?
     @manifest[key] = value
+  end
+
+  def to_h
+    @manifest
   end
 
   def to_s
