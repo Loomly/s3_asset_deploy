@@ -1,5 +1,7 @@
 # S3AssetDeploy
 
+[![CircleCI](https://circleci.com/gh/Loomly/s3_asset_deploy.svg?style=svg)](https://circleci.com/gh/Loomly/s3_asset_deploy)
+
 During rolling deploys to our web instances, this is what we use at
 [Loomly](https://www.loomly.com) to safely deploy our web assets to S3 to be served via Cloudfront.
 This gem is designed to upload and clean unneeded assets from S3 in a safe manner such that older
