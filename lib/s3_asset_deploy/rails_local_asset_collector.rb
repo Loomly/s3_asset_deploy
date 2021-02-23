@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "s3_asset_deploy/local_asset"
+require "s3_asset_deploy/rails_local_asset"
 require "s3_asset_deploy/local_asset_collector"
 
 class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollector
@@ -14,7 +14,7 @@ class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollect
       ::ActionView::Base.assets_manifest.dir
     )
     manifest.assets.values.map do |f|
-      S3AssetDeploy::LocalAsset.new(
+      S3AssetDeploy::RailsLocalAsset.new(
         File.join(assets_prefix, f),
         remove_fingerprint: @remove_fingerprint
       )
@@ -30,7 +30,7 @@ class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollect
       Dir[File.join(packs_dir, "/**/**")]
         .select { |path| File.file?(path) }
         .reject { |path| path.ends_with?(".gz") || path.ends_with?("manifest.json") }
-        .map { |path| S3AssetDeploy::LocalAsset.new(path, remove_fingerprint: @remove_fingerprint) }
+        .map { |path| S3AssetDeploy::RailsLocalAsset.new(path, remove_fingerprint: @remove_fingerprint) }
     end
   end
 

@@ -57,7 +57,6 @@ RSpec.describe S3AssetDeploy::Manager do
 
   describe "#upload" do
     before { allow(File).to receive(:file?) { true } }
-    before { allow_any_instance_of(S3AssetDeploy::LocalAsset).to receive(:public_path) { "" } }
 
     it "uploads new assets" do
       expect_instance_of_remote_asset_collector_to_receive_assets(
