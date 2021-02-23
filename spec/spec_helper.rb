@@ -4,6 +4,7 @@ require "s3_asset_deploy"
 require "ostruct"
 require "time"
 require "timecop"
+require "pry"
 require "helpers"
 
 RSpec.configure do |config|

@@ -4,6 +4,7 @@ require "logger"
 require "time"
 require "aws-sdk-s3"
 require "s3_asset_deploy/errors"
+require "s3_asset_deploy/removal_manifest"
 require "s3_asset_deploy/rails_local_asset_collector"
 require "s3_asset_deploy/remote_asset_collector"
 
@@ -28,6 +29,13 @@ class S3AssetDeploy::Manager
     @upload_options = upload_options
   end
 
+  def removal_manifest
+    @removal_manifest ||= S3AssetDeploy::RemovalManifest.new(
+      bucket_name,
+      s3_client_options: @s3_client_options
+    )
+  end
+
   def local_assets_to_upload
     remote_asset_paths = remote_asset_collector.asset_paths
     local_asset_collector.assets.reject { |asset| remote_asset_paths.include?(asset.path) }
@@ -36,11 +44,24 @@ class S3AssetDeploy::Manager
   def upload(dry_run: false)
     verify_no_duplicate_assets!
 
-    local_assets_to_upload.each do |asset|
+    removal_manifest.load
+    assets_to_upload = local_assets_to_upload
+
+    (removal_manifest.keys & local_asset_collector.asset_paths).each do |path|
+      log "#{path} has been re-added. Deleting from removal manifest."
+      removal_manifest.delete(path) unless dry_run
+    end
+
+    uploaded_assets = []
+    assets_to_upload.each do |asset|
       next unless File.file?(asset.full_path)
       log "Uploading #{asset.path}..."
       upload_asset(asset) unless dry_run
+      uploaded_assets << asset.path
     end
+
+    removal_manifest.save unless dry_run
+    uploaded_assets
   end
 
   # Cleanup old assets on S3. By default it will
@@ -53,7 +74,7 @@ class S3AssetDeploy::Manager
     version_ttl = version_ttl.to_i
     removed_ttl = removed_ttl.to_i
 
-    log "Cleaning assets from #{bucket_name} S3 bucket. Dry run: #{dry_run}"
+    log "Cleaning assets from #{bucket_name} S3 bucket. Dry run: #{dry_run}."
     s3_keys_to_delete = []
 
     unless local_assets_to_upload.empty?
@@ -61,7 +82,9 @@ class S3AssetDeploy::Manager
       return s3_keys_to_delete
     end
 
+    removal_manifest.load
     local_asset_map = local_asset_collector.asset_map
+
     remote_asset_collector.grouped_assets.each do |original_path, versions|
       current_asset = local_asset_map[original_path]
 
@@ -74,12 +97,24 @@ class S3AssetDeploy::Manager
       versions_to_delete = versions_to_delete.sort_by(&:last_modified).reverse
 
       # If the asset has been completely removed from our set of locally compiled assets
-      # then use removed_at tag and removed_ttl to determine if it should be deleted from remote host.
+      # then use removed_at timestamp from manifest and removed_ttl to determine if it
+      # should be deleted from remote host.
       # Otherwise, use version_ttl and version_limit to dermine whether version should be kept.
       versions_to_delete = versions_to_delete.each_with_index.drop_while do |version, index|
         if !current_asset
-          removed_at, removed_age = find_or_create_removed_at_tag(version, dry_run: dry_run)
-          removed_age == 0 || removed_age < removed_ttl
+          if (removed_at = removal_manifest[version.path])
+            removed_at = Time.parse(removed_at)
+            removed_age = Time.now.utc - removed_at
+            log "Determining how long ago #{version.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)."
+            drop = removed_age < removed_ttl
+            removal_manifest.delete(version.path) unless drop || dry_run
+            drop
+          else
+            log "Adding #{version.path} to removal manifest."
+            removed_at = Time.now.utc
+            removal_manifest[version.path] = removed_at.iso8601 unless dry_run
+            true
+          end
         else
           # Keep if under age or within the version_limit
           version_age = [0, Time.now - version.last_modified].max
@@ -90,8 +125,9 @@ class S3AssetDeploy::Manager
       s3_keys_to_delete += versions_to_delete.map(&:path)
     end
 
-    if !s3_keys_to_delete.empty? && !dry_run
+    unless dry_run
       delete_objects(s3_keys_to_delete)
+      removal_manifest.save
     end
 
     s3_keys_to_delete
@@ -119,32 +155,6 @@ class S3AssetDeploy::Manager
   end
 
   protected
-
-  def find_or_create_removed_at_tag(asset, dry_run: false)
-    obj_tagging = get_object_tagging(asset.path)
-    tag_set = obj_tagging.tag_set
-    removed_at_tag = tag_set.find { |t| t[:key] == "removed_at" }
-
-    if removed_at_tag
-      removed_at = Time.parse(removed_at_tag[:value])
-      removed_age = Time.now.utc - removed_at
-      log "Determining how long ago #{asset.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)"
-
-      [removed_at, removed_age]
-    else
-      log "Adding removed_at tag to #{asset.path}"
-      removed_at = Time.now.utc
-
-      if !dry_run
-        put_object_tagging(
-          asset.path,
-          tag_set.push(key: :removed_at, value: removed_at.iso8601)
-        )
-      end
-
-      [removed_at, 0]
-    end
-  end
 
   def upload_asset(asset)
     file_handle = File.open(asset.full_path)
@@ -177,15 +187,8 @@ class S3AssetDeploy::Manager
     s3.put_object(object)
   end
 
-  def get_object_tagging(key)
-    s3.get_object_tagging(bucket: bucket_name, key: key)
-  end
-
-  def put_object_tagging(key, tag_set)
-    s3.put_object_tagging(bucket: bucket_name, key: key, tagging: { tag_set: tag_set })
-  end
-
   def delete_objects(keys = [])
+    return if keys.empty?
     s3.delete_objects(
       bucket: bucket_name,
       delete: { objects: keys.map { |key| { key: key }} }
