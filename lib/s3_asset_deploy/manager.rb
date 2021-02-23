@@ -85,6 +85,8 @@ class S3AssetDeploy::Manager
 
     removal_manifest.load
     local_asset_map = local_asset_collector.asset_map
+
+    # TODO: remove removal manifest from list of remote assets so it's not deleted on S3
     remote_asset_collector.grouped_assets.each do |original_path, versions|
       current_asset = local_asset_map[original_path]
 
