@@ -4,6 +4,7 @@ orbs:
 
 jobs:
   build:
+    parallelism: 1
     docker:
       - image: circleci/ruby:2.6.3-stretch
     executor: ruby/default
