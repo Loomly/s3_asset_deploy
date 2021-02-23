@@ -21,7 +21,7 @@ class S3AssetDeploy::RemoteAssetCollector
   end
 
   def assets
-    s3.list_objects_v2(bucket: bucket_name).each_with_object([]) do |response, array|
+    @assets ||= s3.list_objects_v2(bucket: bucket_name).each_with_object([]) do |response, array|
       remote_assets = response
         .contents
         .reject { |obj| obj.key == S3AssetDeploy::RemovalManifest::PATH }
@@ -31,6 +31,10 @@ class S3AssetDeploy::RemoteAssetCollector
 
       array.concat(remote_assets)
     end
+  end
+
+  def clear_cache
+    @assets = nil
   end
 
   def asset_paths
