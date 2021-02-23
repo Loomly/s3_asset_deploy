@@ -20,7 +20,7 @@ class S3AssetDeploy::LocalAsset
   end
 
   def full_path
-    File.join(public_path, path)
+    File.join(ENV["PWD"], "public", path)
   end
 
   def mime_type
@@ -33,11 +33,5 @@ class S3AssetDeploy::LocalAsset
 
   def to_s
     path
-  end
-
-  protected
-
-  def public_path
-    ::Rails.public_path
   end
 end
