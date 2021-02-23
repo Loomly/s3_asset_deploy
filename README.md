@@ -139,6 +139,25 @@ I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Determ
 I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Determining how long ago assets/file-3-9876666.jpg was removed - removed on 2021-02-15 23:12:24 UTC (172799.703677 seconds ago)
 ```
 
+## AWS IAM Permissions
+`S3AsetDeploy` requires the following AWS IAM permissions:
+
+```json
+"Statement": [
+  {
+    "Action": [
+      "s3:ListBucket",
+      "s3:PutObject*",
+      "s3:DeleteObject"
+    ],
+    "Effect": "Allow",
+    "Resource": [
+      "arn:aws:s3:::#{YOUR_BUCKET}",
+      "arn:aws:s3:::#{YOUR_BUCKET}/*"
+    ]
+  }
+]
+```
 
 ## Development
 
