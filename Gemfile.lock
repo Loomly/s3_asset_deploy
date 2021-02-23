@@ -52,16 +52,19 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.10.0)
     rspec-support (3.10.2)
+    rspec_junit_formatter (0.4.1)
+      rspec-core (>= 2, < 4, != 2.12.0)
     timecop (0.9.2)
 
 PLATFORMS
-  x86_64-darwin-18
+  ruby
 
 DEPENDENCIES
   pry (~> 0.13)
   pry-byebug (~> 3.9)
   rake (~> 13.0)
   rspec (~> 3.0)
+  rspec_junit_formatter (~> 0.4)
   s3_asset_deploy!
   timecop (~> 0.9)
 
