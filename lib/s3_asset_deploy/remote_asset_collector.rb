@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "aws-sdk-s3"
+require "s3_asset_deploy/removal_manifest"
 require "s3_asset_deploy/remote_asset"
 
 class S3AssetDeploy::RemoteAssetCollector
@@ -21,9 +22,13 @@ class S3AssetDeploy::RemoteAssetCollector
 
   def assets
     s3.list_objects_v2(bucket: bucket_name).each_with_object([]) do |response, array|
-      remote_assets = response.contents.map do |obj|
-        S3AssetDeploy::RemoteAsset.new(obj, remove_fingerprint: @remove_fingerprint)
-      end
+      remote_assets = response
+        .contents
+        .reject { |obj| obj.key == S3AssetDeploy::RemovalManifest::PATH }
+        .map do |obj|
+          S3AssetDeploy::RemoteAsset.new(obj, remove_fingerprint: @remove_fingerprint)
+        end
+
       array.concat(remote_assets)
     end
   end
