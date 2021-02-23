@@ -36,6 +36,10 @@ class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollect
 
   private
 
+  def public_path
+    ::Rails.public_path
+  end
+
   def assets_prefix
     ::Rails.application.config.assets.prefix.sub(/^\//, "")
   end
