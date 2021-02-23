@@ -1,10 +1,11 @@
 require "json"
 
 class S3AssetDeploy::RemovalManifest
-  attr_reader :path, :bucket_name
+  attr_reader :bucket_name
 
-  def initialize(path, bucket_name, s3_client_options: {})
-    @path = path
+  PATH = "s3-asset-deploy-removal-manifest.json".freeze
+
+  def initialize(bucket_name, s3_client_options: {})
     @bucket_name = bucket_name
     @loaded = false
     @manifest = {}
@@ -34,7 +35,7 @@ class S3AssetDeploy::RemovalManifest
   def save
     s3.put_object({
       bucket: bucket_name,
-      key: path,
+      key: PATH,
       body: @manifest.to_json,
       acl: "private",
       content_type: "application/json"
@@ -62,7 +63,7 @@ class S3AssetDeploy::RemovalManifest
   end
 
   def inspect
-    "#<#{self.class.name}:#{"0x0000%x" % (object_id << 1)} @path='#{path}' @bucket_name='#{bucket_name}'>"
+    "#<#{self.class.name}:#{"0x0000%x" % (object_id << 1)} @bucket_name='#{bucket_name}'>"
   end
 
   private
@@ -70,7 +71,7 @@ class S3AssetDeploy::RemovalManifest
   def fetch_manifest
     resp = s3.get_object({
       bucket: bucket_name,
-      key: path
+      key: PATH
     })
 
     JSON.parse(resp.body.read)

@@ -11,8 +11,6 @@ require "s3_asset_deploy/remote_asset_collector"
 class S3AssetDeploy::Manager
   attr_reader :bucket_name, :logger, :local_asset_collector, :remote_asset_collector
 
-  REMOVAL_MANIFEST_KEY = "s3-asset-deploy-removal-manifest.json".freeze
-
   def initialize(bucket_name, s3_client_options: {}, logger: nil, local_asset_collector: nil, upload_options: {}, remove_fingerprint: nil)
     @bucket_name = bucket_name.to_s
     @logger = logger || Logger.new(STDOUT)
@@ -33,7 +31,6 @@ class S3AssetDeploy::Manager
 
   def removal_manifest
     @removal_manifest ||= S3AssetDeploy::RemovalManifest.new(
-      REMOVAL_MANIFEST_KEY,
       bucket_name,
       s3_client_options: @s3_client_options
     )
@@ -86,7 +83,6 @@ class S3AssetDeploy::Manager
     removal_manifest.load
     local_asset_map = local_asset_collector.asset_map
 
-    # TODO: remove removal manifest from list of remote assets so it's not deleted on S3
     remote_asset_collector.grouped_assets.each do |original_path, versions|
       current_asset = local_asset_map[original_path]
 
