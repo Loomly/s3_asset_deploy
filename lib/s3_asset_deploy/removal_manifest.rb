@@ -8,6 +8,7 @@ class S3AssetDeploy::RemovalManifest
   def initialize(bucket_name, s3_client_options: {})
     @bucket_name = bucket_name
     @loaded = false
+    @changed = false
     @manifest = {}
     @s3_client_options = {
       region: "us-east-1",
@@ -32,8 +33,14 @@ class S3AssetDeploy::RemovalManifest
     @loaded
   end
 
+  def changed?
+    @changed
+  end
+
   def save
-    return unless loaded?
+    return false unless loaded?
+    return true unless changed?
+
     s3.put_object({
       bucket: bucket_name,
       key: PATH,
@@ -41,6 +48,10 @@ class S3AssetDeploy::RemovalManifest
       acl: "private",
       content_type: "application/json"
     })
+
+    @changed = false
+
+    true
   end
 
   def keys
@@ -49,6 +60,7 @@ class S3AssetDeploy::RemovalManifest
 
   def delete(key)
     return unless loaded?
+    @changed = true
     @manifest.delete(key)
   end
 
@@ -58,6 +70,7 @@ class S3AssetDeploy::RemovalManifest
 
   def []=(key, value)
     return unless loaded?
+    @changed = true
     @manifest[key] = value
   end
 
