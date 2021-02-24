@@ -108,6 +108,7 @@ class S3AssetDeploy::Manager
             removed_age = Time.now.utc - removed_at
             log "Determining how long ago #{version.path} was removed - removed on #{removed_at} (#{removed_age} seconds ago)."
             drop = removed_age < removed_ttl
+            log "Marking removed asset #{version.path} for deletion." unless drop
             removal_manifest.delete(version.path) unless drop || dry_run
             drop
           else
@@ -119,7 +120,9 @@ class S3AssetDeploy::Manager
         else
           # Keep if under age or within the version_limit
           version_age = [0, Time.now - version.last_modified].max
-          version_age < version_ttl || index < version_limit
+          drop = version_age < version_ttl || index < version_limit
+          log "Marking #{version.path} for deletion. Version age: #{version_age}. Version index: #{index}." unless drop
+          drop
         end
       end.map(&:first)
 
