@@ -66,7 +66,7 @@ class S3AssetDeploy::Manager
   end
 
   # Cleanup old assets on S3. By default it will
-  # keep the latest version, 2 backups and any created within the past hour (version_ttl).
+  # keep the latest version, 2 older versions (version_limit) and any created within the past hour (version_ttl).
   # When assets are removed completely, they are tagged with a removed_at timestamp
   # and eventually deleted based on the removed_ttl.
   def clean(version_limit: 2, version_ttl: 3600, removed_ttl: 172800, dry_run: false)
@@ -121,7 +121,7 @@ class S3AssetDeploy::Manager
           # Keep if under age or within the version_limit
           version_age = [0, Time.now - version.last_modified].max
           drop = version_age < version_ttl || index < version_limit
-          log "Marking #{version.path} for deletion. Version age: #{version_age}. Version index: #{index}." unless drop
+          log "Marking #{version.path} for deletion. Version age: #{version_age}. Version: #{index + 1}." unless drop
           drop
         end
       end.map(&:first)
