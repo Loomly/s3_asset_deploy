@@ -2,8 +2,8 @@ PATH
   remote: .
   specs:
     s3_asset_deploy (0.1.0)
-      aws-sdk-s3 (~> 1)
-      mime-types (~> 3)
+      aws-sdk-s3 (~> 1.0)
+      mime-types (~> 3.0)
 
 GEM
   remote: https://rubygems.org/
