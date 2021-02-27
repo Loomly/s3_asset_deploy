@@ -1,6 +1,7 @@
 # S3AssetDeploy
 
 [![CircleCI](https://circleci.com/gh/Loomly/s3_asset_deploy.svg?style=shield)](https://circleci.com/gh/Loomly/s3_asset_deploy)
+[![Gem Version](https://badge.fury.io/rb/s3_asset_deploy.svg)](https://badge.fury.io/rb/s3_asset_deploy)
 
 During rolling deploys to our web instances, this is what we use at
 [Loomly](https://www.loomly.com) to safely deploy our web assets to S3 to be served via Cloudfront.
