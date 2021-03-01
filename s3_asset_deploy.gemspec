@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["contact@loomly.com"]
 
   spec.summary       = "Safely deploy web app assets to S3 during rolling or multi-step deploys."
-  spec.homepage      = "https://www.loomly.com"
+  spec.homepage      = "https://github.com/Loomly/s3_asset_deploy"
   spec.license       = "MIT"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.4.0")
 
