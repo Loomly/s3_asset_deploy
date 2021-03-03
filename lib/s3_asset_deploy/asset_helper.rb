@@ -7,7 +7,7 @@ class S3AssetDeploy::AssetHelper
 
   def self.remove_fingerprint(path)
     match_data = path.match(FINGERPRINTED_ASSET_REGEX)
-    return asset_path unless match_data
+    return path unless match_data
     "#{match_data[1]}#{match_data[3]}"
   end
 
