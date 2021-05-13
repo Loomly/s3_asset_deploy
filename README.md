@@ -61,7 +61,7 @@ You'll need to initialize `S3AssetDeploy::Manager` with an S3 bucket name and **
 - **s3_client_options** (Hash) -> A hash that is passed directly to [`Aws::S3::Client#initialize`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#initialize-instance_method) to configure the S3 client. By default the region is set to `us-east-1`.
 - **logger** (Logger) -> A custom logger. By default things are logged to `STDOUT`.
 - **local_asset_collector** (S3AssetDeploy::LocalAssetCollector) -> A custom instance of `S3AssetDeploy::LocalAssetCollector`. This allows you to customize how locally compiled assets are collected.
-- **upload_options** (Hash) -> A hash consisting of options that are passed directly to [`Aws::S3::Client#put_object`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#put_object-instance_method) when each asset is uploaded. By default `acl` is set to `public-read` and `cache_control` is set to `public, max-age=31536000`.
+- **upload_options** (Hash) -> A hash consisting of options that are passed directly to [`Aws::S3::Client#put_object`](https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#put_object-instance_method) when each asset is uploaded. By default `cache_control` is set to `public, max-age=31536000`.
 - **remove_fingerprint** (Lambda) -> Lambda for overriding how fingerprints are removed from asset paths. Fingerprints need to be removed during the cleaning process in order to group versions of the same file. If no Lambda is provided, [`S3AssetDeploy::AssetHelper.remove_fingerprint`](https://github.com/Loomly/s3_asset_deploy/blob/main/lib/s3_asset_deploy/asset_helper.rb#L8) is used by default.
 
 Here's an example:
