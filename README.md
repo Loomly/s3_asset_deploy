@@ -143,7 +143,7 @@ I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Determ
 ```
 
 ## AWS IAM Permissions
-`S3AsetDeploy` requires the following AWS IAM permissions:
+`S3AsetDeploy` requires the following AWS IAM permissions to list, put, and delete objects in your S3 Bucket:
 
 ```json
 "Statement": [
@@ -159,6 +159,65 @@ I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Determ
       "arn:aws:s3:::#{YOUR_BUCKET}/*"
     ]
   }
+]
+```
+
+## Configuration with Cloudfront
+
+### Restricting Access with Origin Access Identity
+If you want to setup Cloudfront to serve your assets, you can [restrict access to the bucket by using an Origin Access Identity](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html#private-content-granting-permissions-to-oai) so that only Cloudfront can access the objects in your bucket.
+
+If you do this, your bucket policy will look something like this:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowGetObject",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                  "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity #{YOUR_OAI_ID}"
+                ]
+            },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::#{YOUR_BUCKET}/*"
+        },
+        {
+            "Sid": "DenyGetObject",
+            "Effect": "Deny",
+            "Principal": {
+                "AWS": "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity #{YOUR_OAI_ID}"
+            },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::#{YOUR_BUCKET}/s3-asset-deploy-removal-manifest.json"
+        }
+    ]
+}
+```
+
+This policy allows Cloudfront to access everything **except** the removal manifest uploaded and maintained by this gem since this manifest does not need to be served to clients.
+
+### CORS
+Your CORS configuration on the bucket might look something like this:
+
+```json
+[
+    {
+        "AllowedHeaders": [
+            "Authorization"
+        ],
+        "AllowedMethods": [
+            "GET",
+            "HEAD"
+        ],
+        "AllowedOrigins": [
+            "https://*.#{YOUR_SITE}.com"
+        ],
+        "ExposeHeaders": [],
+        "MaxAgeSeconds": 3000
+    }
 ]
 ```
 
