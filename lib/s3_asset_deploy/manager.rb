@@ -168,7 +168,6 @@ class S3AssetDeploy::Manager
       bucket: bucket_name,
       key: asset.path,
       body: file_handle,
-      acl: "public-read",
       content_type: asset.mime_type,
       cache_control: "public, max-age=31536000"
     }.merge(@upload_options)
