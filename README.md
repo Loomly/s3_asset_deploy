@@ -108,6 +108,46 @@ manager.clean
 `S3AssetDeploy::Manager#deploy` and `S3AssetDeploy::Manager#clean` both accept `dry_run` as a keyword argument.
 `S3AssetDeploy::Manager#clean` also accepts `version_limit`, `version_ttl`, and `removed_ttl` just like `S3AssetDeploy::Manager#deploy`.
 
+### Practical Example of Usage
+There are many ways to use and invoke `S3AssetDeploy`. How you use it will depend on your deploy process and pipeline. At Loomly, we have some rake tasks that are invoked from our CI/CD pipeline to perform deploys.
+Here's a basic example of how we use `S3AssetDeploy`:
+
+
+```ruby
+# lib/tasks/deploy.rake
+
+require "s3_asset_deploy"
+
+namespace :deploy do
+  task precompile: :environment do
+    puts "Precompiling assets..."
+    sh("RAILS_ENV=production SECRET_KEY_BASE='secret key' bundle exec rake assets:precompile")
+  end
+
+  task clobber_assets: :environment do
+    puts "Clobbering assets..."
+    sh("RAILS_ENV=production SECRET_KEY_BASE='secret key' bundle exec rake assets:clobber")
+  end
+
+  task :production do
+    Rake::Task["deploy:precompile"].invoke
+
+    manager = S3AssetDeploy::Manager("my-s3-bucket")
+    manager.deploy do
+      # Perform deploy to web instances in this block.
+      # How you do this will depend on where you are hosting your application and what tools you use to deploy.
+    end
+
+    Rake::Task["deploy:clobber_assets"].invoke # <-- If you are running on CI where the precompiled assets directory is ephemeral, this may be unnecessary
+  end
+end
+```
+
+Given the example above, we can perform a deploy by running `bundle exec rake deploy:production`. This task will:
+1. Precompile assets
+2. Upload any new assets to S3 using `S3AssetDeploy`
+3. Deploy a new version of our application
+4. Clean any outdated or unused assets from S3 using `S3AssetDeploy`
 
 ## Customizing local asset collection
 By default, `S3AssetDeploy::Manager` will use [`S3AssetDeploy::RailsLocalAssetCollector`](https://github.com/Loomly/s3_asset_deploy/blob/main/lib/s3_asset_deploy/rails_local_asset_collector.rb) to collect locally compiled assets. This will use the `Sprockets::Manifest` and `Webpacker` config (if `Webpacker` is installed) to locate the compiled assets. `S3AssetDeploy::RailsLocalAssetCollector` inherits from the [`S3AssetDeploy::LocalAssetCollector`](https://github.com/Loomly/s3_asset_deploy/blob/main/lib/s3_asset_deploy/local_asset_collector.rb) base class. You can completely customize how your local assets are collected for deploys by creating your own class that inherits from `S3AssetDeploy::LocalAssetCollector` and passing it into the manager. You'll want override `S3AssetDeploy::LocalAssetCollector#assets` in your custom collector such that it returns an array of `S3AssetDeploy::LocalAsset` instances. Here's a basic example:
