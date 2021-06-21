@@ -138,7 +138,7 @@ namespace :deploy do
       # How you do this will depend on where you are hosting your application and what tools you use to deploy.
     end
 
-    Rake::Task["deploy:clobber_assets"].invoke # <-- if you are running on CI where the precompiled assets directory is ephemeral, this may be unnecessary
+    Rake::Task["deploy:clobber_assets"].invoke # <-- If you are running on CI where the precompiled assets directory is ephemeral, this may be unnecessary
   end
 end
 ```
