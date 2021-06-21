@@ -109,7 +109,7 @@ manager.clean
 `S3AssetDeploy::Manager#clean` also accepts `version_limit`, `version_ttl`, and `removed_ttl` just like `S3AssetDeploy::Manager#deploy`.
 
 ### Practical Example of Usage
-There are many ways to use and invoke `S3AssetDeploy`. How you use it will depend on your deploy process and pipeline. At Loomly, we have some rake tasks that are invoked from our CI/CD pipeline and used to perform deploys.
+There are many ways to use and invoke `S3AssetDeploy`. How you use it will depend on your deploy process and pipeline. At Loomly, we have some rake tasks that are invoked from our CI/CD pipeline to perform deploys.
 Here's a basic example of how we use `S3AssetDeploy`:
 
 
