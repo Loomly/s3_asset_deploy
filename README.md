@@ -42,7 +42,7 @@ Before using `S3AssetDeploy` you want to make sure to compile your assets. Asset
 
 
 ```ruby
-manager = S3AssetDeploy::Manager("my-s3-bucket")
+manager = S3AssetDeploy::Manager.new("my-s3-bucket")
 manager.deploy do
   # Perform deploy to web instances in this block
 end
@@ -132,7 +132,7 @@ namespace :deploy do
   task :production do
     Rake::Task["deploy:precompile"].invoke
 
-    manager = S3AssetDeploy::Manager("my-s3-bucket")
+    manager = S3AssetDeploy::Manager.new("my-s3-bucket")
     manager.deploy do
       # Perform deploy to web instances in this block.
       # How you do this will depend on where you are hosting your application and what tools you use to deploy.
@@ -174,7 +174,7 @@ This will skip any write or delete operations and only perform read opeartions w
 This is helpful for debugging or planning purposes.
 
 ```ruby
-> manager = S3AssetDeploy::Manager("my-s3-bucket")
+> manager = S3AssetDeploy::Manager.new("my-s3-bucket")
 > manager.deploy(dry_run: true)
 
 I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Cleaning assets from test-bucket S3 bucket. Dry run: true
