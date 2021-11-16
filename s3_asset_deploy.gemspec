@@ -28,6 +28,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "aws-sdk-s3", "~> 1.0"
   spec.add_dependency "mime-types", "~> 3.0"
+  spec.add_dependency "concurrent-ruby", "~> 1.1"
 
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rspec", "~> 3.0"

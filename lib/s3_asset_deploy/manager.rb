@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "concurrent"
 require "logger"
 require "time"
 require "aws-sdk-s3"
@@ -53,12 +54,22 @@ class S3AssetDeploy::Manager
     end
 
     uploaded_assets = []
+
+    pool = Concurrent::FixedThreadPool.new(10)
+    upload_errors = Concurrent::Array.new
     assets_to_upload.each do |asset|
       next unless File.file?(asset.full_path)
       log "Uploading #{asset.path}..."
-      upload_asset(asset) unless dry_run
+      pool.post do
+        begin
+          upload_asset(asset) unless dry_run
+        rescue StandardError => e
+          upload_errors << e
+        end
+      end
       uploaded_assets << asset.path
     end
+    wait_for_pool_to_finish(pool, upload_errors)
 
     removal_manifest.save unless dry_run
     remote_asset_collector.clear_cache
@@ -202,4 +213,19 @@ class S3AssetDeploy::Manager
   def log(msg)
     logger.info("#{self.class.name}: #{msg}")
   end
+
+  def wait_for_pool_to_finish(pool, errors)
+    pool.shutdown
+
+    until pool.shutdown?
+      if errors.any?
+        pool.kill
+        fail errors.first
+      end
+      sleep 1
+    end
+
+    pool.wait_for_termination
+  end
+
 end
