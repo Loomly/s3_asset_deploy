@@ -65,7 +65,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  nokogiri
+  nokogiri (~> 1.13)
   pry (~> 0.13)
   pry-byebug (~> 3.9)
   rake (~> 13.0)

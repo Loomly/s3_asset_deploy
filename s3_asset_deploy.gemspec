@@ -36,6 +36,10 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "pry-byebug", "~> 3.9"
   spec.add_development_dependency "rspec_junit_formatter", "~> 0.4"
 
+  # Required for aws-sdk-ruby.
+  # See https://github.com/aws/aws-sdk-ruby/blob/version-3/gems/aws-sdk-core/lib/aws-sdk-core/xml/parser.rb#L74
+  spec.add_development_dependency "nokogiri", "~> 1.13"
+
   # For more information and examples about making a new gem, checkout our
   # guide at: https://bundler.io/guides/creating_gem.html
 end
