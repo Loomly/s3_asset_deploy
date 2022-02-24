@@ -1,5 +1,8 @@
 # Changelog
 
+## [v1.0.1](https://github.com/Loomly/s3_asset_deploy/compare/v1.0.0...v1.0.1) - 2022-02-23
+- Batch delete API calls with max 1000 keys - [PR #32](https://github.com/Loomly/s3_asset_deploy/pull/32)
+
 ## [v1.0.0](https://github.com/Loomly/s3_asset_deploy/compare/v0.1.1...v1.0.0) - 2021-05-13
 ### Breaking Changes
 - Remove default `acl` setting when uploading assets to bucket - [PR #25](https://github.com/Loomly/s3_asset_deploy/pull/25)
