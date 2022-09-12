@@ -1,5 +1,8 @@
 # Changelog
 
+## [v1.0.2](https://github.com/Loomly/s3_asset_deploy/compare/v1.0.1...v1.0.2) - 2022-09-12
+- Remove `acl` specification when saving removal manifest. Bucket policies should be used instead.
+
 ## [v1.0.1](https://github.com/Loomly/s3_asset_deploy/compare/v1.0.0...v1.0.1) - 2022-02-23
 - Batch delete API calls with max 1000 keys - [PR #32](https://github.com/Loomly/s3_asset_deploy/pull/32)
 
