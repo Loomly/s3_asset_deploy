@@ -45,7 +45,6 @@ class S3AssetDeploy::RemovalManifest
       bucket: bucket_name,
       key: PATH,
       body: @manifest.to_json,
-      acl: "private",
       content_type: "application/json"
     })
 
