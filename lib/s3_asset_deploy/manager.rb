@@ -194,10 +194,12 @@ class S3AssetDeploy::Manager
   def delete_objects(keys = [])
     return if keys.empty?
     keys.each_slice(1000) do |key_slice|
-      s3.delete_objects(
+      resp = s3.delete_objects(
         bucket: bucket_name,
         delete: { objects: key_slice.map { |key| { key: key }} }
       )
+
+      log("Delete objects response: #{resp.to_h}")
     end
   end
 
