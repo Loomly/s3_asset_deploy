@@ -183,6 +183,10 @@ class S3AssetDeploy::Manager
 
   def verify_no_duplicate_assets!
     if local_asset_collector.original_asset_paths.uniq.length != local_asset_collector.asset_paths.length
+      original_asset_paths = local_asset_collector.original_asset_paths
+      duplicates = original_asset_paths.detect { |path| original_asset_paths.count(path) > 1 }
+
+      log "Duplicates found: #{duplicates}"
       raise S3AssetDeploy::DuplicateAssetsError
     end
   end
