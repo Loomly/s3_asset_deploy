@@ -22,10 +22,11 @@ class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollect
   end
 
   def pack_assets
-    return [] unless defined?(::Webpacker)
+    return [] unless defined?(::Shakapacker) || defined?(::Webpacker)
 
     Dir.chdir(public_path) do
-      packs_dir = ::Webpacker.config.public_output_path.relative_path_from(public_path)
+      config = defined?(::Shakapacker) ? ::Shakapacker.config : ::Webpacker.config
+      packs_dir = config.public_output_path.relative_path_from(public_path)
 
       Dir[File.join(packs_dir, "/**/**")]
         .select { |path| File.file?(path) }
