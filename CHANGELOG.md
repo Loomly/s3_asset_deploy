@@ -1,5 +1,8 @@
 # Changelog
 
+## [v1.0.3](https://github.com/Loomly/s3_asset_deploy/compare/v1.0.1...v1.0.3) - 2024-09-23
+- Add support for Shakapacker 8.x+
+
 ## [v1.0.2](https://github.com/Loomly/s3_asset_deploy/compare/v1.0.1...v1.0.2) - 2022-09-12
 - Remove `acl` specification when saving removal manifest. Bucket policies should be used instead.
 
