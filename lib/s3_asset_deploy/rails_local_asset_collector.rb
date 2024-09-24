@@ -11,7 +11,7 @@ class S3AssetDeploy::RailsLocalAssetCollector < S3AssetDeploy::LocalAssetCollect
   def assets_from_manifest
     manifest = ::Sprockets::Manifest.new(
       ::ActionView::Base.assets_manifest.environment,
-      ::ActionView::Base.assets_manifest.dir
+      ::ActionView::Base.assets_manifest.filename
     )
     manifest.assets.values.map do |f|
       S3AssetDeploy::RailsLocalAsset.new(
