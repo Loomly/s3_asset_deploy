@@ -183,23 +183,32 @@ I, [2021-02-17T16:12:23.703677 #65335]  INFO -- : S3AssetDeploy::Manager: Determ
 ```
 
 ## AWS IAM Permissions
-`S3AsetDeploy` requires the following AWS IAM permissions to list, put, and delete objects in your S3 Bucket:
+`S3AssetDeploy` requires the following AWS minimum IAM permissions to get, list, put, and delete objects in your S3 Bucket:
 
 ```json
-"Statement": [
-  {
-    "Action": [
-      "s3:ListBucket",
-      "s3:PutObject*",
-      "s3:DeleteObject"
-    ],
-    "Effect": "Allow",
-    "Resource": [
-      "arn:aws:s3:::#{YOUR_BUCKET}",
-      "arn:aws:s3:::#{YOUR_BUCKET}/*"
-    ]
-  }
-]
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowBucketOperations",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::#{YOUR_BUCKET}"
+    },
+    {
+      "Sid": "AllowObjectOperations",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::#{YOUR_BUCKET}/*"
+    }
+  ]
+}
 ```
 
 ## Configuration with Cloudfront
